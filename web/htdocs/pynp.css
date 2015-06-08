@@ -1,0 +1,66 @@
+.pynp_graph {
+    display: block;
+    float:left;
+}
+
+.pynp_back {
+    position: absolute;
+    left: 15px;
+    top: 0px;
+    display: none;
+    opacity: 0;
+    cursor: pointer;
+    width: 35px;
+    height: 35px;
+    background-image: url(images/button_back_lo.png);
+    background-size: 35px;
+}
+
+.pynp_back:hover {
+    background-image: url(images/button_back_hi.png);
+    cursor: pointer;
+}
+
+/*div#zoom {
+    position: absolute;
+    top: 0px;
+    height: 100%;
+    left:50%;
+    width:2px;
+    background: red;
+    opacity:0.5;   
+    border-width:0 1px;
+    border-color:red;
+    border-style:solid;
+} */
+/*
+ * imgAreaSelect default style
+ */
+
+.imgareaselect-border1,
+.imgareaselect-border2,
+.imgareaselect-border3,
+.imgareaselect-border4 
+{
+    border:1px dotted #f00;
+}
+
+.imgareaselect-handle {
+    background-color: #fff;
+    border: solid 1px #000;
+    filter: alpha(opacity=50);
+    opacity: 0.5;
+}
+
+.imgareaselect-outer {
+/*    background-color: #000;
+    filter: alpha(opacity=50);
+    opacity: 0.5; */
+    display:none;
+}
+
+.imgareaselect-selection {
+    background-color: #f00;
+    filter: alpha(opacity=40);
+    opacity: 0.4;
+}

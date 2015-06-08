@@ -1,0 +1,423 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# +------------------------------------------------------------------+
+# |                     ____        _   _ ____                       |
+# |                    |  _ \ _   _| \ | |  _ \                      |
+# |                    | |_) | | | |  \| | |_) |                     |
+# |                    |  __/| |_| | |\  |  __/                      |
+# |                    |_|    \__, |_| \_|_|                         |
+# |                           |___/                                  |
+# |                                                                  |
+# | Copyright Dennis Lerch 2015                  dennis.lerch@gmx.de |
+# +------------------------------------------------------------------+
+#
+# PyNP is free software;  you  can  redistribute  it and/or modify  it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation  in  version  2.  PyNP  is  distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# ails.  You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
+
+import rrdtool
+import Image, ImageDraw, ImageFont
+import defaults
+import config
+import colorsys
+import random
+import re
+import os
+import time
+import htmllib
+from StringIO import StringIO
+from lib import *
+from itertools import izip_longest
+
+class PyNPException(Exception):
+    plain_title = "General error"
+    title       = "Error"
+    def __init__(self, reason):
+        self.reason = reason
+    
+    def __str__(self):
+        return self.reason
+
+class PyNPGraph(object):
+    """Class for generating the graphs"""
+    def __init__(self, host, service, start=None, end=None, width=None, height=None):
+        self.host = str(host)
+        self.service = str(service)
+        self.start = start and int(start)
+        self.end = end and int(end)
+        self.width = (width and int(width)) or config.pynp_default_width
+        self.height = (height and int(height)) or config.pynp_default_height
+        self._graph = None
+        self._template = None
+        self._rrd_files = None
+        self._dummy_perf_data = None
+        self.rrd_host = str(pnp_cleanup(host))
+        self.rrd_service = str(pnp_cleanup(service))
+        self.rrd_path = str(config.pynp_rrd_path)
+        self.rrd_path_host = '%s/%s' % (self.rrd_path, self.rrd_host)
+        self.__rrd_cached_socket = str(config.pynp_rrd_cached_socket)
+        self.__rrd_update_interval = int(config.pynp_rrd_update_interval)
+    
+    @property
+    def graph(self):
+        """Return the graph"""
+        if not self._graph:
+            self.create_graph()
+        return self._graph
+    
+    @property
+    def template(self):
+        """Return the PyNPTemplate"""
+        if not self._template:
+            self._template = PyNPTemplate(self)
+        return self._template
+    
+    @property
+    def rrd_files(self):
+        """Return the RRD-Files for this host & service"""
+        if not self._rrd_files:
+            self.lookup_rrd_files()
+        return self._rrd_files
+    
+    @property
+    def dummy_perf_data(self):
+        """Return a dummy perf_data line"""
+        if not self._dummy_perf_data:
+            self.lookup_rrd_files()
+        return self._dummy_perf_data
+    
+    def create_graph(self):
+        """Flush the rrd_cache if it's necessary, then get the rrd-config, generate the graph(s) and merge them to a single image"""
+        graphs = []
+        
+        if not self.end or self.end > time.time() - self.__rrd_update_interval:
+            self.flush_rrd_cache()
+        
+        for tmpl_params in self.template.rrd_params:
+            graphs.append(Image.open(StringIO(rrdtool.graphv('-',*tmpl_params)['image'])))
+        
+        if len(graphs) == 1:
+            self._graph = graphs[0]
+        elif graphs:
+            self._graph = self.merge_graphs(graphs)
+        else:
+            PyNPException('No graph was generated')
+        
+    def flush_rrd_cache(self):
+        """Flush the rrd_cache for necessary files"""
+        rrdtool.flushcached('--daemon', self.__rrd_cached_socket,
+            map(lambda x: '/'.join([self.rrd_path_host, x.encode('ascii', 'replace')]), self.rrd_files))
+    
+    def lookup_rrd_files(self):
+        """Search existing rrd_files for this host & service and generate dummy perf_data"""
+        self._rrd_files = filter(lambda x: x.startswith(self.rrd_service + '_') and x.endswith('.rrd'), os.listdir(self.rrd_path_host))
+        self._dummy_perf_data = '=;;;; '.join(map(lambda x: x[len(self.service)+1:-4],self._rrd_files)) + '=;;;;'
+    
+    def merge_graphs(self, graphs):
+        """Merge multiple graphs to a single image"""
+        act_height = 0
+        width = max(x.size[0] for x in graphs)
+        height = sum(x.size[1] for x in graphs)
+        collection = Image.new(graphs[0].mode, (width, height))
+        collection.format = graphs[0].format
+        for graph in graphs:
+            collection.paste(graph, (0, act_height))
+            act_height += graph.size[1]
+        return collection
+
+class PyNPTemplate(object):
+    """Class for the PyNP Templates"""
+    def __init__(self, graph):
+        self._rrd_params = None
+        self.__graph = graph
+        self.__config_path = defaults.omd_root + '/local/share/check_mk/web/plugins/pynp'
+        self.__template_paths = [defaults.omd_root + '/local/share/check_mk/web/plugins/pynp/graph_templates']
+        self.__template_paths.extend(config.pynp_template_paths)
+        self.__color_steps = config.pynp_random_colors or 8
+        self.__font = config.pynp_font
+        self._perf_data = {}
+        self._unit = {}
+        self._check_command = None
+        self._rrd_file = {}
+        self._substitutions = None
+    
+    @property
+    def rrd_params(self):
+        """Return rrd params for graph"""
+        if not self._rrd_params:
+            self.create_rrd_params()
+        return self._rrd_params
+    
+    @property
+    def perf_data(self):
+        if not self._perf_data:
+            self.lookup_livestatus()
+        return self._perf_data
+    
+    @property
+    def unit(self):
+        if not self._unit:
+            self.lookup_livestatus()
+        return self._unit
+    
+    @property
+    def check_command(self):
+        if not self._check_command:
+            self.lookup_livestatus()
+        return self._check_command
+    
+    @property
+    def rrd_file(self):
+        if not self._rrd_file:
+            self.lookup_livestatus()
+        return self._rrd_file
+    
+    @property
+    def substitutions(self):
+        if not self._substitutions:
+            self._substitutions = {
+                'hostname'        : self.__graph.host,
+                'servicedesc'     : self.__graph.service,
+                'rrd_file'        : self.rrd_file,
+                'font'            : self.__font,
+                'perf_data'       : self.perf_data,
+                'unit'            : self.unit,
+                'rand_color'      : self.random_hex_color,
+                'check_command'   : self.check_command,
+            }
+        return self._substitutions
+    
+    def create_rrd_params(self):
+        service_descr_template = {}
+        graph_params = []
+        
+        #load all files in pynp path to extend the substitutions and get service_templates
+        for fn in filter(lambda x: x.endswith(".py"), os.listdir(self.__config_path)):
+            execfile("%s/%s" % (self.__config_path, fn), {}, self.substitutions)
+        
+        if 'service_descr_template' in self.substitutions:
+            service_descr_template = self.substitutions.pop('service_descr_template')
+        
+        #building graph_templates based on service description
+        if self.check_command == 'check_mk-local' and service_descr_template:
+            for regex, file in service_descr_template.iteritems():
+                if re.match(regex, self.__graph.service):
+                    graph_params = self.load_template(file)
+                    if graph_params:
+                        break
+        
+        #building graph-templates based on check_command
+        if not graph_params:
+            graph_params = self.load_template(self.check_command)
+        
+        #building default templates
+        if not graph_params:
+            graph_params = self.load_template('default')
+        
+        #load common template file in subfolder and merge with each graph_template
+        common = self.load_template("common")[0]
+        if common:
+            for index, rrd_conf in enumerate(graph_params):
+                graph_params[index] = dict(self.merge_conf(common, rrd_conf))
+        
+        #merge the options from request
+        options = {
+            'start' : self.__graph.start,
+            'end'   : self.__graph.end,
+            'height': self.__graph.height,
+            'width' : self.__graph.width,
+        }
+        for index, rrd_conf in enumerate(graph_params):
+            graph_params[index] = dict(self.merge_conf(rrd_conf, {'opt': options}))
+        
+        #finishing the graph_templates (options to parameter)
+        for index, rrd_conf in enumerate(graph_params):
+            graph_params[index] = self.to_rrd_graph_parameter(rrd_conf['opt']) + rrd_conf['def']
+        #graph_template = map(lambda x,y: self.to_rrd_graph_parameter(x) + y, graph_template)
+        
+        self._rrd_params = graph_params
+        return True
+    
+    def load_template(self, file):
+        template_file = ''
+        local_dict = {}
+        for path in reversed(self.__template_paths):
+            if os.path.isfile('%s/%s.py' % (path, file)):
+                template_file = open('%s/%s.py' % (path, file), 'r')
+                break
+        if not template_file:
+            return[]
+        
+        template = template_file.read()
+        template_file.close()
+        compiled_template = compile(template, '<string>', 'exec')
+        try: 
+            exec compiled_template in self.substitutions, local_dict
+        except:
+            raise PyNPException("Error while loading template file %s.py:\n%s" % (file, format_exception()))
+        
+        #variables from template ordered by declaration time
+        template_vars = [
+            {key: local_dict[key]} for key in filter(lambda x: x in local_dict, compiled_template.co_names)
+        ]
+        
+        #get everything that looks like {'opt': {...}, 'def': [...]}
+        return list(self.find_templates_in_var(template_vars))
+    
+    def lookup_livestatus(self):
+        query = "GET services\nFilter: host_name = %s\nFilter: description = %s\n" \
+                "Columns: perf_data check_command" % (self.__graph.host, self.__graph.service)
+        result = html.live.query(query)
+        if result:
+            perf_data, check_command = result[0]
+        else:
+            perf_data, check_command = None, None
+        
+        #if no result from livestatus, use dummy data from graph
+        if not perf_data:
+            perf_data = self.__graph.dummy_perf_data
+        
+        for perf_line in perf_data.split():
+            key, values = str(perf_line).split('=')
+            self._rrd_file[key] = str("%s/%s/%s_%s.rrd" % (self.__graph.rrd_path, self.__graph.rrd_host, self.__graph.rrd_service, pnp_cleanup(key)))
+            perf_val = dict(
+                izip_longest(
+                    ["act", "warn", "crit", "min", "max"],
+                    map(lambda x: x if x else False, values.split(';'))
+                )
+            )
+            self._perf_data[key] = perf_val
+            if perf_val['act']:
+                self._unit[key] = re.split('[\d\.]*', perf_val['act'])[-1]
+            else:
+                self._unit[key] = ''
+        self._check_command = check_command.split('!')[0]
+    
+    def find_templates_in_var(self, d):
+        if isinstance(d, dict):
+            if ('def' in d or 'opt' in d):
+                yield d
+            else:
+                for k, v in d.iteritems():
+                    for x in self.find_templates_in_var(v):
+                        yield x
+        elif isinstance(d, list):
+            for v in d:
+                for x in self.find_templates_in_var(v):
+                    yield x
+    
+    def merge_conf(self, conf_a, conf_b):
+        for k in set(conf_a.keys()).union(conf_b.keys()):
+            if k in conf_a and k in conf_b:
+                if isinstance(conf_a[k], dict) and isinstance(conf_b[k], dict):
+                    yield (k, dict(self.merge_conf(conf_a[k], conf_b[k])))
+                else:
+                    yield (k, conf_b[k])
+            elif k in conf_a:
+                yield (k, conf_a[k])
+            else:
+                yield (k, conf_b[k])
+    
+    def to_rrd_graph_parameter(self, options):
+        params = []
+        for option, value in options.iteritems():
+            if isinstance(value, dict):
+                for x, y in value.iteritems():
+                    params += ["--" + option, "%s%s" % (x,y)]
+            elif value == True:
+                params.append("--" + option)
+            elif value == False or value == None:
+                continue
+            else:
+                params += ["--" + option, str(value)]
+        return params
+    
+    def random_hex_color(self, index=0):
+        if type(index) is int:
+            #return color_index with maximum differenze between last color
+            index %= self.__color_steps
+            if index%2==0:
+                color_index = index/2
+            else:
+                color_index = index/2 + self.__color_steps/2
+        else:
+            color_index = random.randint(0, steps-1)
+        hue = 1. / self.__color_steps * color_index + 0.25 #to begin the hue with green, add 0.25 to it (red is an evil color ;) )
+        saturation = 1
+        lightness = 0.5
+        return "#%02x%02x%02x" % tuple(map(lambda x: int(x*255), colorsys.hls_to_rgb(hue, lightness, saturation)))
+
+def paint_graph():
+    host = html.var_utf8("host")
+    service = html.var_utf8("service")
+    start = html.var_utf8("start", None)
+    end = html.var_utf8("end", None)
+    width = html.var_utf8("width", None)
+    height = html.var_utf8("height", None)
+    
+    image = StringIO()
+    
+    try:
+        graph = PyNPGraph(host, service, start, end, width, height).graph
+    except Exception, e:
+        graph = exception_to_graph(e)
+
+    graph.save(image, format=graph.format)
+    
+    html.req.content_type = "image/png"
+    filename = str('%s_%s' % (host, service)).replace('.','_')
+    html.req.headers_out['Content-Disposition'] = 'filename=%s.png' % filename
+    html.write(image.getvalue())
+    image.close()
+
+def exception_to_graph(e):
+    font = ImageFont.load_default()
+    
+    details = 'Check_MK Version: ' + defaults.check_mk_version + '\n' \
+            + 'Page: ' + html.myfile + '.py\n\n' \
+            + 'GET/POST-Variables:\n' \
+            + '\n'.join([ ' '+n+'='+v for n, v in sorted(html.vars.items()) ]) + '\n' \
+            + '\n' \
+            + format_exception()
+            
+    error_msg = "Internal error:%s\n----------\nDetails:\n\n%s" % (html.attrencode(e), details)
+    error_list = error_msg.split('\n')
+    
+    text_dimension = map(font.getsize, error_list)
+    text_width = max([x[0] for x in text_dimension])
+    text_height = sum([x[1] for x in text_dimension])
+    
+    img_width = text_width + 100
+    img_height = text_height + 100
+    
+    img =  Image.new("RGB", (img_width, img_height), '#ff0000')
+    img.format = "png"
+    draw = ImageDraw.Draw(img)
+    
+    for index, line in enumerate(error_list):
+        act_height = (img_height-text_height)/2 + index * text_dimension[index][1]
+        act_width = (img_width-text_width)/2                #center - left align
+        #act_width = (img_width-text_dimension[index][0])/2 #center - center align
+        draw.text((act_width, act_height), line, "#ffffff", font=font)
+    
+    return img
+
+##ugly monkey patch to load the requires css and js files
+def body_start(self, title='', **args):
+    if "javascripts" in args:
+        args["javascripts"].extend(
+            ['jquery', 'imgareaselect', 'pynp']      #hopefully there will be another way to load the jquery file
+        )
+    if "stylesheets" in args:
+        args["stylesheets"]+=['pynp']
+    self.html_head(title, **args)
+    self.write('<body class="main %s">' % self.var("_body_class", ""))
+
+htmllib.html.body_start = body_start
