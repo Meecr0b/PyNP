@@ -20,8 +20,14 @@
 # | colors           | dict     | some general colors                          | {'green': '#00ff0080','green_line':'#00ff00','oragen':'#ff990080',...}                    |
 # | rand_color       | function | generate random hex color                    | rand_color(steps=8, index=None) => #7ffff00                                               |
 # +------------------+----------+----------------------------------------------+-------------------------------------------------------------------------------------------+
+fs_name = ''
 
-fs_name = servicedesc[11:]
+#fs_name is ds that is part of servicedesc
+for ds in rrd_file.keys():
+    if ds in servicedesc:
+        fs_name = ds
+        break
+
 maxgb = float(perf_data[fs_name]['max']) / 1024
 warngb = float(perf_data[fs_name]['warn']) / 1024
 critgb = float(perf_data[fs_name]['crit']) / 1024
