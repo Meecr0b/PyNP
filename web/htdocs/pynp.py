@@ -296,6 +296,8 @@ class PyNPTemplate(object):
             self._perf_data[key] = perf_val
             if perf_val['act']:
                 self._unit[key] = re.split('[\d\.]*', perf_val['act'])[-1]
+                if self._unit[key] == '%':
+                    self._unit[key] = '%%'    #used for string formating
             else:
                 self._unit[key] = ''
         self._check_command = check_command.split('!')[0]
