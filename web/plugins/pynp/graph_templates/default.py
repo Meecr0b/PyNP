@@ -24,16 +24,30 @@
 templates = []
 for index, ds in enumerate(rrd_file):
     templates.append({
-        'opt' : {
-            'title': '%s %s' % (hostname, servicedesc.replace(':', '\:')),
-        },
+        'opt' : {},
         'def' : [
             'DEF:a=%s:1:AVERAGE' % rrd_file[ds],
             'AREA:a%s:%s' % (rand_color(index=index), ds),
-            'GPRINT:a:LAST:Last\: %6.2lf',
-            'GPRINT:a:MAX:Max\: %6.2lf',
-            'GPRINT:a:AVERAGE:Average\: %6.2lf\\n',
+            'GPRINT:a:LAST:Last\: %%6.2lf %s' % unit[ds],
+            'GPRINT:a:MAX:Max\: %%6.2lf %s' % unit[ds],
+            'GPRINT:a:AVERAGE:Average\: %%6.2lf %s\\n' % unit[ds],
             'LINE1:a%s' % colors['black'],
             'HRULE:0%s' % colors['black'],
         ]
     })
+
+    if unit[ds]:
+        templates[index]['opt']['vertical-label'] = unit[ds]
+
+    if perf_data[ds]['warn']:
+        templates[index]['def'].extend([
+            'HRULE:%s#ffff00:Warning  %s\\n' % (perf_data[ds]['warn'],perf_data[ds]['warn']),
+            'HRULE:%s#ff0000:Critical %s\\n' % (perf_data[ds]['crit'],perf_data[ds]['crit']),
+        ])
+
+templates[0]['opt']['title'] = '%s / %s' % (hostname, servicedesc.replace(':', '\:'))
+
+templates[-1]['def'].extend([
+    'COMMENT:Default Template\\r',
+    'COMMENT:Command %s\\r' % str(check_command),
+])
