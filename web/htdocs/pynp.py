@@ -341,7 +341,7 @@ class PyNPTemplate(object):
                 params += ["--" + option, str(value)]
         return params
     
-    def random_hex_color(self, index=0):
+    def random_hex_color(self, index=None):
         if type(index) is int:
             #return color_index with maximum differenze between last color
             index %= self.__color_steps
