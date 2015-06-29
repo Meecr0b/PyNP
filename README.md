@@ -8,7 +8,7 @@ Lightweight Multisite-Plugin to display performance data stored in RRD databases
 
 ## Installation
 
-1. install PyNP-Plugin
+1. install [PyNP-Plugin](https://mathias-kettner.de/check_mk_exchange_download.php?HTML=&file=PyNP-0.5.mkp "Check_MK Exchange")
 2. restart OMD
 3. add 'PyNP service graph'-Column to the service-view
 
