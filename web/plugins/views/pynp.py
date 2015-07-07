@@ -43,7 +43,7 @@ def paint_pynpgraph(sitename, host, service = "Check_MK", show=True):
         
         return "pynpgraph", "<div class=\"pynp_graph\" >" \
                             "  <div style=\"position:relative;\">" \
-                            "    <img class=\"pynp_img\" src=\"%scheck_mk/pynp.py?host=%s&service=%s&start=%s&end=%s&width=%s&height=%s\" title=\"%s/%s (%s - %s)\" alt=\"PyNP Graph\"l/>" \
+                            "    <img class=\"pynp_img\" src=\"%scheck_mk/pynp.py?host=%s&service=%s&start=%s&end=%s&width=%s&height=%s\" title=\"%s/%s (%s - %s)\" alt=\"PyNP Graph\"/>" \
                             "    <a class=\"pynp_back\" title=\"Back\" alt=\"back button\"/>" \
                             "  </div>" \
                             "</div>" \
