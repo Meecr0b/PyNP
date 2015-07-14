@@ -83,7 +83,7 @@ my_templates_2 = {
 - every template is merged with the common template
 
 ## Variables
-you have access to the folowing variables in a template file:
+you have access to the following variables in a template file:
 
 | Variable | Type | Description | Example |
 |----------|------|-------------|---------|
