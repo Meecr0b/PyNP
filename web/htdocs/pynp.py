@@ -143,6 +143,7 @@ class PyNPTemplate(object):
         self.__color_steps = config.pynp_random_colors or 8
         self.__font = config.pynp_font
         self._perf_data = {}
+        self._perf_keys = []
         self._unit = {}
         self._check_command = None
         self._rrd_file = {}
@@ -160,6 +161,12 @@ class PyNPTemplate(object):
         if not self._perf_data:
             self.lookup_livestatus()
         return self._perf_data
+    
+    @property
+    def perf_keys(self):
+        if not self._perf_keys:
+            self.lookup_livestatus()
+        return self._perf_keys
     
     @property
     def unit(self):
@@ -183,14 +190,15 @@ class PyNPTemplate(object):
     def substitutions(self):
         if not self._substitutions:
             self._substitutions = {
-                'hostname'        : self.__graph.host,
-                'servicedesc'     : self.__graph.service,
-                'rrd_file'        : self.rrd_file,
-                'font'            : self.__font,
-                'perf_data'       : self.perf_data,
-                'unit'            : self.unit,
-                'rand_color'      : self.random_hex_color,
-                'check_command'   : self.check_command,
+                'hostname'      : self.__graph.host,
+                'servicedesc'   : self.__graph.service,
+                'rrd_file'      : self.rrd_file,
+                'font'          : self.__font,
+                'perf_data'     : self.perf_data,
+                'perf_keys'     : self.perf_keys,
+                'unit'          : self.unit,
+                'rand_color'    : self.random_hex_color,
+                'check_command' : self.check_command,
             }
         return self._substitutions
     
@@ -287,6 +295,7 @@ class PyNPTemplate(object):
         for perf_line in perf_data.split():
             key, values = str(perf_line).split('=')
             self._rrd_file[key] = str("%s/%s/%s_%s.rrd" % (self.__graph.rrd_path, self.__graph.rrd_host, self.__graph.rrd_service, pnp_cleanup(key)))
+            self._perf_keys.append(key)
             perf_val = dict(
                 izip_longest(
                     ["act", "warn", "crit", "min", "max"],

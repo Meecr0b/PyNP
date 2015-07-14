@@ -7,19 +7,20 @@
 #   |           |___/                                  |_|                        |
 #   +-----------------------------------------------------------------------------+
 # available variables:
-# +------------------+----------+----------------------------------------------+-------------------------------------------------------------------------------------------+
-# | variable         | type     | description                                  | example                                                                                   |
-# |------------------+----------+----------------------------------------------+-------------------------------------------------------------------------------------------|
-# | hostname         | string   | name of the host                             | "localhost"                                                                               |
-# | servicedesc      | string   | description of the service                   | "Interface 3"                                                                             |
-# | check_command    | string   | name of the check_command                    | "check_mk-uptime"                                                                         |
-# | rrd_file         | dict     | rrd files accessible by ds                   | {"uptime": "/path/to/rrds/localhost/UPTIME_uptime.rrd"}                                   |
-# | font             | string   | value of pynp_font in config                 | "Courier"                                                                                 |
-# | perf_data        | dict     | perf_data from livestatus accessible by ds   | {'uptime' : {"act": "38875011.78", "warn": None, "crit": None, "min": None, "max": None}} |
-# | unit             | dict     | unit from livestatus accessible by ds        | {'rta':'ms','pl':'%','rtmax':'ms', 'rtmin':'ms'}                                          |
-# | colors           | dict     | some general colors                          | {'green': '#00ff0080','green_line':'#00ff00','oragen':'#ff990080',...}                    |
-# | rand_color       | function | generate random hex color                    | rand_color(steps=8, index=None) => #7ffff00                                               |
-# +------------------+----------+----------------------------------------------+-------------------------------------------------------------------------------------------+
+# +---------------+----------+--------------------------------------------+---------------------------------------------------------------------------------------+
+# | variable      | type     | description                                | example                                                                               |
+# |---------------+----------+--------------------------------------------+---------------------------------------------------------------------------------------|
+# | hostname      | string   | name of the host                           | "localhost"                                                                           |
+# | servicedesc   | string   | description of the service                 | "Interface 3"                                                                         |
+# | check_command | string   | name of the check_command                  | "check_mk-uptime"                                                                     |
+# | rrd_file      | dict     | rrd files accessible by ds                 | {"uptime": "/path/to/rrds/localhost/UPTIME_uptime.rrd"}                               |
+# | font          | string   | value of pynp_font in config               | "Courier"                                                                             |
+# | perf_data     | dict     | perf_data from livestatus accessible by ds | {'uptime': {'warn': None, 'crit': None, 'max': None, 'min': None, 'act': '12019013'}} |
+# | perf_keys     | list     | keys from perf_data in correct order       | ['rta', 'pl','rtmax', 'rtmin']                                                        |
+# | unit          | dict     | unit from livestatus accessible by ds      | {'rtmin': 'ms', 'rta': 'ms', 'rtmax': 'ms', 'pl': '%'}                                |
+# | colors        | dict     | some general colors                        | {'green': '#00ff0080','green_line':'#00ff00','oragen':'#ff990080',...}                |
+# | rand_color    | function | generate random hex color                  | rand_color(steps=8, index=None) => #7ffff00                                           |
+# +---------------+----------+--------------------------------------------+---------------------------------------------------------------------------------------+
 
 used_mem = {
     'opt' : {
