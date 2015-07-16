@@ -36,14 +36,17 @@ from StringIO import StringIO
 from lib import *
 from itertools import izip_longest
 
+
 class PyNPException(Exception):
     plain_title = "General error"
     title       = "Error"
+    
     def __init__(self, reason):
         self.reason = reason
     
     def __str__(self):
         return self.reason
+
 
 class PyNPGraph(object):
     """Class for generating the graphs"""
@@ -101,7 +104,7 @@ class PyNPGraph(object):
             self.flush_rrd_cache()
         
         for tmpl_params in self.template.rrd_params:
-            graphs.append(Image.open(StringIO(rrdtool.graphv('-',*tmpl_params)['image'])))
+            graphs.append(Image.open(StringIO(rrdtool.graphv('-', *tmpl_params)['image'])))
         
         if len(graphs) == 1:
             self._graph = graphs[0]
@@ -118,7 +121,7 @@ class PyNPGraph(object):
     def lookup_rrd_files(self):
         """Search existing rrd_files for this host & service and generate dummy perf_data"""
         self._rrd_files = filter(lambda x: x.startswith(self.rrd_service + '_') and x.endswith('.rrd'), os.listdir(self.rrd_path_host))
-        self._dummy_perf_data = '=;;;; '.join(map(lambda x: x[len(self.service)+1:-4],self._rrd_files)) + '=;;;;'
+        self._dummy_perf_data = '=;;;; '.join(map(lambda x: x[len(self.service)+1:-4], self._rrd_files)) + '=;;;;'
     
     def merge_graphs(self, graphs):
         """Merge multiple graphs to a single image"""
@@ -131,6 +134,7 @@ class PyNPGraph(object):
             collection.paste(graph, (0, act_height))
             act_height += graph.size[1]
         return collection
+
 
 class PyNPTemplate(object):
     """Class for the PyNP Templates"""
@@ -266,7 +270,7 @@ class PyNPTemplate(object):
         template = template_file.read()
         template_file.close()
         compiled_template = compile(template, '<string>', 'exec')
-        try: 
+        try:
             exec compiled_template in self.substitutions, local_dict
         except:
             raise PyNPException("Error while loading template file %s.py:\n%s" % (file, format_exception()))
@@ -342,9 +346,9 @@ class PyNPTemplate(object):
             if isinstance(value, dict):
                 for x, y in value.iteritems():
                     params += ["--" + option, "%s%s" % (x,y)]
-            elif value == True:
+            elif value is True:
                 params.append("--" + option)
-            elif value == False or value == None:
+            elif value is False or value is None:
                 continue
             else:
                 params += ["--" + option, str(value)]
@@ -360,10 +364,11 @@ class PyNPTemplate(object):
                 color_index = index/2 + self.__color_steps/2
         else:
             color_index = random.randint(0, steps-1)
-        hue = 1. / self.__color_steps * color_index + 0.25 #to begin the hue with green, add 0.25 to it (red is an evil color ;) )
+        hue = 1. / self.__color_steps * color_index + 0.25  #to begin the hue with green, add 0.25 to it (red is an evil color ;) )
         saturation = 1
         lightness = 0.5
         return "#%02x%02x%02x" % tuple(map(lambda x: int(x*255), colorsys.hls_to_rgb(hue, lightness, saturation)))
+
 
 def paint_graph():
     host = html.var_utf8("host")
@@ -383,10 +388,11 @@ def paint_graph():
     graph.save(image, format=graph.format)
     
     html.req.content_type = "image/png"
-    filename = str('%s_%s' % (host, service)).replace('.','_')
+    filename = str('%s_%s' % (host, service)).replace('.', '_')
     html.req.headers_out['Content-Disposition'] = 'filename=%s.png' % filename
     html.write(image.getvalue())
     image.close()
+
 
 def exception_to_graph(e):
     font = ImageFont.load_default()
@@ -408,7 +414,7 @@ def exception_to_graph(e):
     img_width = text_width + 100
     img_height = text_height + 100
     
-    img =  Image.new("RGB", (img_width, img_height), '#ff0000')
+    img = Image.new("RGB", (img_width, img_height), '#ff0000')
     img.format = "png"
     draw = ImageDraw.Draw(img)
     
@@ -420,11 +426,12 @@ def exception_to_graph(e):
     
     return img
 
-##ugly monkey patch to load the requires css and js files
+
+# ugly monkey patch to load the requires css and js files
 def body_start(self, title='', **args):
     if "javascripts" in args:
         args["javascripts"].extend(
-            ['jquery', 'imgareaselect', 'pynp']      #hopefully there will be another way to load the jquery file
+            ['jquery', 'imgareaselect', 'pynp']      # hopefully there will be another way to load the jquery file
         )
     if "stylesheets" in args:
         args["stylesheets"]+=['pynp']
