@@ -55,8 +55,8 @@ class PyNPGraph(object):
         self.service = str(service)
         self.start = start and int(start)
         self.end = end and int(end)
-        self.width = (width and int(width)) or config.pynp_default_width
-        self.height = (height and int(height)) or config.pynp_default_height
+        self._width = (width and int(width)) or config.pynp_default_width
+        self._height = (height and int(height)) or config.pynp_default_height
         self._graph = None
         self._template = None
         self._rrd_files = None
@@ -95,6 +95,18 @@ class PyNPGraph(object):
         if not self._dummy_perf_data:
             self.lookup_rrd_files()
         return self._dummy_perf_data
+    
+    @property
+    def height(self):
+        if self._height > config.pynp_max_height:
+            self._height = config.pynp_max_height
+        return self._height
+    
+    @property
+    def width(self):
+        if self._width > config.pynp_max_width:
+            self._width = config.pynp_max_width
+        return self._width
     
     def create_graph(self):
         """Flush the rrd_cache if it's necessary, then get the rrd-config, generate the graph(s) and merge them to a single image"""
