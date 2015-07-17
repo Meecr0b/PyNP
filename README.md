@@ -92,7 +92,7 @@ you have access to the following variables in a template file:
 | **check_command** | string | name of the check_command | `'check_mk-uptime'` |
 | **rrd_file** | dict | rrd files accessible by ds | `{'uptime': '/path/to/rrds/localhost/UPTIME_uptime.rrd'}` |
 | **font** | string | value of pynp_font in config | `'Courier'` |
-| **perf_data** | dict | perf_data from livestatus accessible by ds | `{'uptime': {'warn': None, 'crit': None, 'max': None, 'min': None, 'act': '12019013'}} |
+| **perf_data** | dict | perf_data from livestatus accessible by ds | `{'uptime': {'warn': None, 'crit': None, 'max': None, 'min': None, 'act': '12019013'}}` |
 | **perf_keys** | list | keys from perf_data in correct order | `['rta', 'pl','rtmax', 'rtmin']` |
 | **unit** | dict | unit from livestatus accessible by ds | `{'rtmin': 'ms', 'rta': 'ms', 'rtmax': 'ms', 'pl': '%'}` |
 | **colors** | dict | some general colors | `{'green': '#00ff0080','green_line':'#00ff00','oragen':'#ff990080',...}` |
