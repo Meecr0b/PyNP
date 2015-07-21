@@ -117,13 +117,13 @@ interface_in_out = {
 
 if warn:
     interface_in_out['def'].extend([
-        'HRULE:%s#ffff00:Warning\:  %13.1f %s%s/s\\n' % (warn, warn, bwuom, unit),
+        'HRULE:%s#ffff00:Warning\:   %8.1f %s%s/s\\n' % (warn, warn, bwuom, unit),
         'HRULE:-%s#ffff00:' % warn
     ])
     
 if crit:
     interface_in_out['def'].extend([
-        'HRULE:%s#ff0000:Critical\:  %13.1f %s%s/s\\n' % (crit, crit, bwuom, unit),
+        'HRULE:%s#ff0000:Critical\:  %8.1f %s%s/s\\n' % (crit, crit, bwuom, unit),
         'HRULE:-%s#ff0000:' % crit
     ])
 
