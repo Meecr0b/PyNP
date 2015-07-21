@@ -92,7 +92,7 @@ interface_in_out = {
     'opt' : {
         'height': '100',
         'base': '1024',
-        'title': "Used bandwith %s / %s" % (hostname, servicedesc),
+        'title': "Used bandwith %s / %s%s" % (hostname, servicedesc, bandwidthInfo),
         'vertical-label': '%s%s/sec' % (bwuom, unit)
     },
     'def' : [
@@ -118,14 +118,18 @@ interface_in_out = {
 if warn:
     interface_in_out['def'].extend([
         'HRULE:%s#ffff00:Warning\:   %8.1f %s%s/s\\n' % (warn, warn, bwuom, unit),
-        'HRULE:-%s#ffff00:' % warn
     ])
-    
+
 if crit:
     interface_in_out['def'].extend([
         'HRULE:%s#ff0000:Critical\:  %8.1f %s%s/s\\n' % (crit, crit, bwuom, unit),
-        'HRULE:-%s#ff0000:' % crit
     ])
+
+if bandwidth:
+    interface_in_out['def'].extend([
+        'HRULE:%s#000000:Port speed\:  %6.1f %s%s/s\\n' % (bandwidth, bandwidth, bwuom, unit),
+    ])
+
 
 # Graph 2: packets
 interface_pack_in_out = {
