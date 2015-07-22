@@ -1,7 +1,10 @@
 # PyNP
 Lightweight Multisite-Plugin for performance graphs
 
-## Overview
+## Example
+![pynp example](https://cloud.githubusercontent.com/assets/1681330/8819262/fcd5afb2-304a-11e5-81bb-9581c32a1750.png)
+
+# Overview
 
 ## Requirements
 - Check_MK Version 1.2.6
