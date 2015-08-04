@@ -31,8 +31,6 @@ apache_status = {
     'def' : [
         'DEF:varTotal=%s:1:AVERAGE' % rrd_file["TotalSlots"],
         'DEF:varOpen=%s:1:AVERAGE' % rrd_file["OpenSlots"],
-        'HRULE:%s#000000:Total Slots\: %s\\n' % (perf_data['TotalSlots']['act'], perf_data['TotalSlots']['act']),
-        'COMMENT: \\n',
     ]
 }
 
