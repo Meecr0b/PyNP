@@ -22,8 +22,6 @@
 # | rand_color    | function | generate random hex color                  | rand_color(steps=8, index=None) => #7ffff00                                           |
 # +---------------+----------+--------------------------------------------+---------------------------------------------------------------------------------------+
 
-ds = rrd_file.keys()
-
 apache_status = {
     'opt' : {
         'lower-limit': '0',
@@ -44,7 +42,7 @@ if perf_data['TotalSlots']['act']:
         'COMMENT: \\n',
     ])
 
-for index, key in enumerate(ds):
+for index, key in enumerate(perf_keys):
     if key.startswith('State'):
         apache_status['def'].extend([
             'DEF:var%s=%s:1:AVERAGE' % (key, rrd_file[key]),
@@ -90,7 +88,7 @@ if "BytesPerSec" in rrd_file:
         },
         'def' : [
             'DEF:varBytesPerSec=%s:1:AVERAGE' % rrd_file['BytesPerSec'],
-            'LINE1:varBytesPerSec%s:BytesPerSec     :STACK' % rand_color(index=ds.index("BytesPerSec")),
+            'LINE1:varBytesPerSec%s:BytesPerSec     :STACK' % rand_color(index=perf_keys.index("BytesPerSec")),
             'GPRINT:varBytesPerSec:LAST:Last %6.1lf',
             'GPRINT:varBytesPerSec:MAX:Max %6.1lf',
             'GPRINT:varBytesPerSec:AVERAGE:Average %6.1lf',
@@ -99,7 +97,7 @@ if "BytesPerSec" in rrd_file:
 
 all_other_graphs = []
 
-for index, key in enumerate(ds):
+for index, key in enumerate(perf_keys):
     if not key.startswith(('State_','ReqPerSec','BytesPerSec','Uptime')):
         all_other_graphs.append({
             'opt' : {
@@ -115,18 +113,19 @@ for index, key in enumerate(ds):
             ]
         })
 
-uptime_graph = {
-    'opt' : {
-        'lower-limit': '0',
-        'title': "Uptime (time since last reboot)",
-        'vertical-label': "Uptime (d)"
-    },
-    'def' : [
-        'DEF:sec=%s:1:MAX' % rrd_file['Uptime'],
-        'CDEF:uptime=sec,86400,/',
-        'AREA:uptime#80f000:Uptime (days)',
-        'LINE:uptime#408000',
-        'GPRINT:uptime:LAST:%7.2lf %s LAST',
-        'GPRINT:uptime:MAX:%7.2lf %s MAX',
-    ]
-}
+if 'Uptime' in rrd_file:
+    uptime_graph = {
+        'opt' : {
+            'lower-limit': '0',
+            'title': "Uptime (time since last reboot)",
+            'vertical-label': "Uptime (d)"
+        },
+        'def' : [
+            'DEF:sec=%s:1:MAX' % rrd_file['Uptime'],
+            'CDEF:uptime=sec,86400,/',
+            'AREA:uptime#80f000:Uptime (days)',
+            'LINE:uptime#408000',
+            'GPRINT:uptime:LAST:%7.2lf %s LAST',
+            'GPRINT:uptime:MAX:%7.2lf %s MAX',
+        ]
+    }
