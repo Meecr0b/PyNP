@@ -231,8 +231,8 @@ class PyNPTemplate(object):
         
         #building graph_templates based on service description
         if self.check_command == 'check_mk-local' and service_descr_template:
-            for regex, file in service_descr_template.iteritems():
-                if re.match(regex, self.__graph.service):
+            for expression, file in service_descr_template.iteritems():
+                if regex(expression).match(self.__graph.service):
                     graph_params = self.load_template(file)
                     if graph_params:
                         break
@@ -320,7 +320,7 @@ class PyNPTemplate(object):
             )
             self._perf_data[key] = perf_val
             if perf_val['act']:
-                self._unit[key] = re.split('[\d\.]*', perf_val['act'])[-1]
+                self._unit[key] = regex('[\d\.]*').split(perf_val['act'])[-1]
                 if self._unit[key] == '%':
                     self._unit[key] = '%%'    #used for string formating
             else:
