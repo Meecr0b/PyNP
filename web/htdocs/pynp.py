@@ -401,6 +401,10 @@ def paint_graph():
     
     html.req.content_type = "image/png"
     filename = str('%s_%s' % (host, service)).replace('.', '_')
+    if start and end:
+        start_str = time.strftime("%Y%m%d%H%M", time.localtime(int(start)))
+        end_str = time.strftime("%Y%m%d%H%M", time.localtime(int(end)))
+        filename += '__%s-%s' % (start_str, end_str)
     html.req.headers_out['Content-Disposition'] = 'filename=%s.png' % filename
     html.write(image.getvalue())
     image.close()
