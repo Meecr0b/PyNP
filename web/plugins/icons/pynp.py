@@ -25,7 +25,7 @@
 # Links to PyNP IMG
 def pynp_url(row, what):
     if what == "host":
-        return "view.py?view_name=searchpnp&host_regex=^%s$&service_regex=^%s$&filled_in=filter" % (html.urlencode(row["host_name"]), "Check_MK")
+        return "view.py?view_name=searchpnp&host_regex=^%s$&filled_in=filter" % (html.urlencode(row["host_name"]))
     else:
         return "view.py?view_name=searchpnp&host_regex=^%s$&service_regex=^%s$&filled_in=filter" % (html.urlencode(row["host_name"]), html.urlencode(row["service_description"]))
 
