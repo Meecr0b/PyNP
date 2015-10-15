@@ -1,7 +1,7 @@
 var pynp_hist = [];
 
 function pynp_init(){
-  if ($('#po_pynp_width option:selected').text() == 'auto'){
+  if (/^auto/i.test($('#po_pynp_width option:selected').text())){
     pynp_graph_autosize();
     $( window ).resize(pynp_graph_autosize);
   }
