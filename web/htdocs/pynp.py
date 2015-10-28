@@ -55,8 +55,6 @@ class PyNPGraph(object):
         self.service = str(service)
         self.start = start and int(start)
         self.end = end and int(end)
-        self._width = (width and int(width)) or config.pynp_default_width
-        self._height = (height and int(height)) or config.pynp_default_height
         self._graph = None
         self._template = None
         self._rrd_files = None
@@ -67,6 +65,15 @@ class PyNPGraph(object):
         self.rrd_path_host = '%s/%s' % (self.rrd_path, self.rrd_host)
         self.__rrd_cached_socket = str(config.pynp_rrd_cached_socket)
         self.__rrd_update_interval = int(config.pynp_rrd_update_interval)
+        
+        try:
+            self._width = int(width)
+        except:
+            self._width = config.pynp_default_width
+        try:
+            self._height = int(height)
+        except:
+            self._height = config.pynp_default_height
     
     @property
     def graph(self):
