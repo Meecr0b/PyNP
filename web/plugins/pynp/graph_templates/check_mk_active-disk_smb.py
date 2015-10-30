@@ -18,7 +18,7 @@
 # | perf_data     | dict     | perf_data from livestatus accessible by ds | {'uptime': {'warn': None, 'crit': None, 'max': None, 'min': None, 'act': '12019013'}} |
 # | perf_keys     | list     | keys from perf_data in correct order       | ['rta', 'pl','rtmax', 'rtmin']                                                        |
 # | unit          | dict     | unit from livestatus accessible by ds      | {'rtmin': 'ms', 'rta': 'ms', 'rtmax': 'ms', 'pl': '%'}                                |
-# | colors        | dict     | some general colors                        | {'green': '#00ff0080','green_line':'#00ff00','oragen':'#ff990080',...}                |
+# | colors        | dict     | some general colors                        | {'green': '#00ff0080','green_line':'#00ff00','orange':'#ff990080',...}                |
 # | rand_color    | function | generate random hex color                  | rand_color(steps=8, index=None) => #7ffff00                                           |
 # +---------------+----------+--------------------------------------------+---------------------------------------------------------------------------------------+
 

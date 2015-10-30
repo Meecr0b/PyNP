@@ -25,7 +25,7 @@
 colors = {
     'green'       : '#00ff0080',
     'green_line'  : '#00ff00',
-    'oragen'      : '#ff990080',
+    'orange'      : '#ff990080',
     'red'         : '#ff000080',
     'red_line'    : '#ff0000',
     'yellow'      : '#ffff0080',
