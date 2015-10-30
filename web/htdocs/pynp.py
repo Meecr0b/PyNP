@@ -316,23 +316,26 @@ class PyNPTemplate(object):
             perf_data = self.__graph.dummy_perf_data
         
         for perf_line in perf_data.split():
-            key, values = str(perf_line).split('=')
-            self._rrd_file[key] = str("%s/%s/%s_%s.rrd" % (self.__graph.rrd_path, self.__graph.rrd_host, self.__graph.rrd_service, pnp_cleanup(key)))
-            self._perf_keys.append(key)
-            perf_val = dict(
-                izip_longest(
-                    ["act", "warn", "crit", "min", "max"],
-                    map(lambda x: x if x else False, values.split(';'))
+            if u'=' in perf_line:
+                key, values = str(perf_line).split('=')
+                self._rrd_file[key] = str("%s/%s/%s_%s.rrd" % (self.__graph.rrd_path, self.__graph.rrd_host, self.__graph.rrd_service, pnp_cleanup(key)))
+                self._perf_keys.append(key)
+                perf_val = dict(
+                    izip_longest(
+                        ["act", "warn", "crit", "min", "max"],
+                        map(lambda x: x if x else False, values.split(';'))
+                    )
                 )
-            )
-            self._perf_data[key] = perf_val
-            if perf_val['act']:
-                self._unit[key] = regex('[\d\.]*').split(perf_val['act'])[-1]
-                if self._unit[key] == '%':
-                    self._unit[key] = '%%'    #used for string formating
+                self._perf_data[key] = perf_val
+                if perf_val['act']:
+                    self._unit[key] = regex('[\d\.]*').split(perf_val['act'])[-1]
+                    if self._unit[key] == '%':
+                        self._unit[key] = '%%'    #used for string formating
+                else:
+                    self._unit[key] = ''
             else:
-                self._unit[key] = ''
-        self._check_command = check_command.split('!')[0]
+                self._check_command = perf_line[1:-1] #fix for mrpe
+        self._check_command = self._check_command or check_command.split('!')[0]
     
     def find_templates_in_var(self, d):
         if isinstance(d, dict):
