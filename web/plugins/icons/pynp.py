@@ -58,3 +58,5 @@ if config.pynp_replace_pnp_icon:
         'columns':    ['pnpgraph_present'],
         'paint':      paint_pynp_graph,
     })
+    #replace Perf-O-Meter link
+    pnp_url = lambda row, what, how='graph': pynp_url(row, what)
