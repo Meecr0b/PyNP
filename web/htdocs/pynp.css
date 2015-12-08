@@ -21,6 +21,18 @@
     cursor: pointer;
 }
 
+.pynp_csv_export {
+    position: absolute;
+    right: 0px;
+    bottom: 0px;
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    background-image: url(images/status_download_csv.png);
+    background-size: 20px;
+}
+
+
 /*div#zoom {
     position: absolute;
     top: 0px;

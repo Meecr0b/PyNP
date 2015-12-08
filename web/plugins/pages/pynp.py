@@ -25,5 +25,5 @@
 import pynp
 
 pagehandlers.update({
-   "pynp"       : pynp.paint_graph,
+   "pynp"       : pynp.get_file,
 })

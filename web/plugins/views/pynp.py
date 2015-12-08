@@ -45,9 +45,10 @@ def paint_pynpgraph(sitename, host, service = "Check_MK", show=True):
                             "  <div style=\"position:relative;\">" \
                             "    <img class=\"pynp_img\" src=\"%scheck_mk/pynp.py?host=%s&service=%s&start=%s&end=%s&width=%s&height=%s\" title=\"%s/%s (%s - %s)\" alt=\"PyNP Graph\"/>" \
                             "    <a class=\"pynp_back\" title=\"Back\" alt=\"back button\"/>" \
+                            "    <a class=\"pynp_csv_export\" title=\"CSV export\" alt=\"csv export\" href=\"pynp.py?host=%s&service=%s&start=%s&end=%s&output_format=csv\"/>" \
                             "  </div>" \
                             "</div>" \
-                            "<script>pynp_init();</script>" % (site_url, host, service, from_ts, to_ts, width, height, host, service, from_ts_str, to_ts_str)
+                            "<script>pynp_init();</script>" % (site_url, host, service, from_ts, to_ts, width, height, host, service, from_ts_str, to_ts_str, host, service, from_ts, to_ts)
     return "pynpgraph", ""
 
 multisite_painters["svc_pynp_graph" ] = {

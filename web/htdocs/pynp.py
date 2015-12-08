@@ -50,12 +50,12 @@ class PyNPException(Exception):
 
 class PyNPGraph(object):
     """Class for generating the graphs"""
-    def __init__(self, host, service, start=None, end=None, width=None, height=None):
+    def __init__(self, host, service, start=None, end=None, width=None, height=None, output_format='png'):
         self.host = str(host)
         self.service = str(service)
         self.start = start and int(start)
         self.end = end and int(end)
-        self._graph = None
+        self._file = None
         self._template = None
         self._rrd_files = None
         self._dummy_perf_data = None
@@ -65,6 +65,7 @@ class PyNPGraph(object):
         self.rrd_path_host = '%s/%s' % (self.rrd_path, self.rrd_host)
         self.__rrd_cached_socket = str(config.pynp_rrd_cached_socket)
         self.__rrd_update_interval = int(config.pynp_rrd_update_interval)
+        self.output_format = output_format
         
         try:
             self._width = int(width)
@@ -76,11 +77,11 @@ class PyNPGraph(object):
             self._height = config.pynp_default_height
     
     @property
-    def graph(self):
-        """Return the graph"""
-        if not self._graph:
-            self.create_graph()
-        return self._graph
+    def file(self):
+        """Return the file as string"""
+        if not self._file:
+            self.create_file()
+        return self._file
     
     @property
     def template(self):
@@ -115,23 +116,24 @@ class PyNPGraph(object):
             self._width = config.pynp_max_width
         return self._width
     
-    def create_graph(self):
-        """Flush the rrd_cache if it's necessary, then get the rrd-config, generate the graph(s) and merge them to a single image"""
+    def create_file(self):
+        """Flush the rrd_cache if it's necessary, then get the rrd-config, generate the graph(s) and merge them to a single file"""
         graphs = []
         
         if not self.end or self.end > time.time() - self.__rrd_update_interval:
             self.flush_rrd_cache()
         
-        for tmpl_params in self.template.rrd_params:
-            graphs.append(Image.open(StringIO(rrdtool.graphv('-', *tmpl_params)['image'])))
-        
-        if len(graphs) == 1:
-            self._graph = graphs[0]
-        elif graphs:
-            self._graph = self.merge_graphs(graphs)
+        if self.output_format == 'csv':
+            for tmpl_params in self.template.rrd_params:
+                graphs.append(rrdtool.xport(*tmpl_params))
+            self._file = self.merge_files(graphs)
         else:
+            for tmpl_params in self.template.rrd_params:
+                graphs.append(rrdtool.graphv('-', *tmpl_params))
+            self._file = self.merge_files(graphs)
+        if not self._file:
             PyNPException('No graph was generated')
-        
+            
     def flush_rrd_cache(self):
         """Flush the rrd_cache for necessary files"""
         rrdtool.flushcached('--daemon', self.__rrd_cached_socket,
@@ -142,17 +144,44 @@ class PyNPGraph(object):
         self._rrd_files = filter(lambda x: x.startswith(self.rrd_service + '_') and x.endswith('.rrd'), os.listdir(self.rrd_path_host))
         self._dummy_perf_data = '=;;;; '.join(map(lambda x: x[len(self.service)+1:-4], self._rrd_files)) + '=;;;;'
     
-    def merge_graphs(self, graphs):
-        """Merge multiple graphs to a single image"""
-        act_height = 0
-        width = max(x.size[0] for x in graphs)
-        height = sum(x.size[1] for x in graphs)
-        collection = Image.new(graphs[0].mode, (width, height))
-        collection.format = graphs[0].format
-        for graph in graphs:
-            collection.paste(graph, (0, act_height))
-            act_height += graph.size[1]
-        return collection
+    def merge_files(self, files):
+        """Merge multiple files to a single file and returns them as string"""
+        file = None
+        
+        if self.output_format == 'csv':
+            file = ''
+            header = ['"TIME_IDX"']
+            time_idx = files[0]['meta']['start']
+            step = files[0]['meta']['step']
+            
+            for e in map(lambda x: x['meta']['legend'], files):
+                header.extend(e)
+            
+            data = [header]
+            
+            for i in range(files[0]['meta']['rows']):
+                line = [time_idx]
+                for e in map(lambda x: x['data'][i], files):
+                    line.extend(e)
+                data.append(line)
+                time_idx += step
+            for line in data:
+                file += ';'.join(map(str, line)) + '\n'
+        else: #image
+            tmp_string_io = StringIO()
+            act_height = 0
+            width = max(map(lambda x: x['image_width'], files))
+            height = sum(map(lambda x: x['image_height'], files))
+            images = map(lambda x: Image.open(StringIO(x['image'])), files)
+            merged_image = Image.new(images[0].mode, (width, height))
+            merged_image.format = images[0].format
+            for image in images:
+                merged_image.paste(image, (0, act_height))
+                act_height += image.size[1]
+            merged_image.save(tmp_string_io, format=merged_image.format)
+            file = tmp_string_io.getvalue()
+            tmp_string_io.close()
+        return file
 
 
 class PyNPTemplate(object):
@@ -171,6 +200,7 @@ class PyNPTemplate(object):
         self._check_command = None
         self._rrd_file = {}
         self._substitutions = None
+        self.__xport_formats = ['csv']
     
     @property
     def rrd_params(self):
@@ -270,6 +300,17 @@ class PyNPTemplate(object):
         
         #finishing the graph_templates (options to parameter)
         for index, rrd_conf in enumerate(graph_params):
+            if self.__graph.output_format in self.__xport_formats:
+                xports = []
+                #cleanup graph_params for xport
+                for key in filter(lambda x: x not in ['start', 'end'], rrd_conf['opt']):
+                    del rrd_conf['opt'][key]
+                #extend graph_params for xport
+                for line in graph_params[index]['def']:
+                    if line.lower().startswith('def'):
+                        x_var = line.split('=',1)[0][4:] 
+                        xports.append('XPORT:%s:"%s"'% (x_var, x_var))
+                graph_params[index]['def'] += xports
             graph_params[index] = self.to_rrd_graph_parameter(rrd_conf['opt']) + rrd_conf['def']
         #graph_template = map(lambda x,y: self.to_rrd_graph_parameter(x) + y, graph_template)
         
@@ -392,33 +433,34 @@ class PyNPTemplate(object):
         return "#%02x%02x%02x" % tuple(map(lambda x: int(x*255), colorsys.hls_to_rgb(hue, lightness, saturation)))
 
 
-def paint_graph():
+def get_file():
     host = html.var_utf8("host")
     service = html.var_utf8("service")
     start = html.var_utf8("start", None)
     end = html.var_utf8("end", None)
     width = html.var_utf8("width", None)
     height = html.var_utf8("height", None)
+    output_format = html.var_utf8("output_format", "png")
     
-    image = StringIO()
-    
-    try:
-        graph = PyNPGraph(host, service, start, end, width, height).graph
-    except Exception, e:
-        graph = exception_to_graph(e)
-
-    graph.save(image, format=graph.format)
-    
-    html.req.content_type = "image/png"
     filename = str('%s_%s' % (host, service)).replace('.', '_')
     if start and end:
         start_str = time.strftime("%Y%m%d%H%M", time.localtime(int(start)))
         end_str = time.strftime("%Y%m%d%H%M", time.localtime(int(end)))
         filename += '__%s-%s' % (start_str, end_str)
-    html.req.headers_out['Content-Disposition'] = 'filename=%s.png' % filename
-    html.write(image.getvalue())
-    image.close()
-
+    html.req.headers_out['Content-Disposition'] = 'filename=%s.%s' % (filename, str(output_format))
+    
+    if output_format == 'csv':
+        html.req.content_type = 'text/csv'
+    else:
+        html.req.content_type = 'image/png'
+    
+    try:
+        file = PyNPGraph(host, service, start, end, width, height, output_format).file
+    except Exception, e:
+        html.req.content_type = 'image/png'
+        file = exception_to_graph(e)
+        
+    html.write(file)
 
 def exception_to_graph(e):
     font = ImageFont.load_default()
@@ -450,7 +492,12 @@ def exception_to_graph(e):
         #act_width = (img_width-text_dimension[index][0])/2 #center - center align
         draw.text((act_width, act_height), line, "#ffffff", font=font)
     
-    return img
+    tmp_string_io = StringIO()
+    img.save(tmp_string_io)
+    exception_graph = tmp_string_io.getvalue()
+    tmp_string_io.close()
+    
+    return exception_graph
 
 
 # ugly monkey patch to load the requires css and js files

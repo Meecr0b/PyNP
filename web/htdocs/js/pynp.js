@@ -91,6 +91,11 @@ function pynp_zoom(img){
           $('img.pynp_img').each(function(i, img){
             pynp_graph_reload(img, sel_start, sel_end);
           });
+          
+          //change csv export url
+          $('a.pynp_csv_export').each(function(i, a){
+            a.href = a.href.replace(/([?&]start)=([^#&]*)/, '$1=' + sel_start).replace(/([?&]end)=([^#&]*)/, '$1=' + sel_end);
+          });
       }
   });
   if (pynp_hist.length > 1){
