@@ -166,7 +166,7 @@ class PyNPGraph(object):
                 data.append(line)
                 time_idx += step
             for line in data:
-                file += ';'.join(map(str, line)) + '\n'
+                file += ';'.join(map(lambda x: str(x or ''), line)) + '\n'
         else: #image
             tmp_string_io = StringIO()
             act_height = 0
