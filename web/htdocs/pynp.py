@@ -50,7 +50,7 @@ class PyNPException(Exception):
 
 class PyNPGraph(object):
     """Class for generating the graphs"""
-    def __init__(self, host, service, start=None, end=None, width=None, height=None, output_format='png'):
+    def __init__(self, host, service, start=None, end=None, width=None, height=None, output_format='png', max_rows=None):
         self.host = str(host)
         self.service = str(service)
         self.start = start and int(start)
@@ -75,6 +75,10 @@ class PyNPGraph(object):
             self._height = int(height)
         except:
             self._height = config.pynp_default_height
+        try:
+            self._max_rows = int(max_rows)
+        except:
+            self._max_rows = None #default 400 by rrd
     
     @property
     def file(self):
@@ -116,6 +120,13 @@ class PyNPGraph(object):
             self._width = config.pynp_max_width
         return self._width
     
+    @property
+    def max_rows(self):
+        if self._max_rows > config.pynp_max_rows:
+            self._max_rows = config.pynp_max_rows
+        return self._max_rows
+
+    
     def create_file(self):
         """Flush the rrd_cache if it's necessary, then get the rrd-config, generate the graph(s) and merge them to a single file"""
         graphs = []
@@ -153,18 +164,19 @@ class PyNPGraph(object):
             header = ['"TIME_IDX"']
             time_idx = files[0]['meta']['start']
             step = files[0]['meta']['step']
+            i = 0
             
             for e in map(lambda x: x['meta']['legend'], files):
                 header.extend(e)
-            
             data = [header]
             
-            for i in range(files[0]['meta']['rows'] - 1):
+            while not (time_idx > self.end or i > files[0]['meta']['rows']-1):
                 line = [time_idx]
                 for e in map(lambda x: x['data'][i], files):
                     line.extend(e)
                 data.append(line)
                 time_idx += step
+                i += 1
             for line in data:
                 file += ';'.join(map(lambda x: str(x or ''), line)) + '\n'
         else: #image
@@ -295,6 +307,10 @@ class PyNPTemplate(object):
             'height': self.__graph.height,
             'width' : self.__graph.width,
         }
+        
+        if self.__graph.max_rows and self.__graph.output_format in self.__xport_formats:
+            options['maxrows'] = self.__graph.max_rows
+        
         for index, rrd_conf in enumerate(graph_params):
             graph_params[index] = dict(self.merge_conf(rrd_conf, {'opt': options}))
         
@@ -303,7 +319,7 @@ class PyNPTemplate(object):
             if self.__graph.output_format in self.__xport_formats:
                 xports = []
                 #cleanup graph_params for xport
-                for key in filter(lambda x: x not in ['start', 'end'], rrd_conf['opt']):
+                for key in filter(lambda x: x not in ['start', 'end', 'maxrows'], rrd_conf['opt']):
                     del rrd_conf['opt'][key]
                 #extend graph_params for xport
                 for line in graph_params[index]['def']:
@@ -441,6 +457,7 @@ def get_file():
     width = html.var_utf8("width", None)
     height = html.var_utf8("height", None)
     output_format = html.var_utf8("output_format", "png")
+    max_rows = html.var_utf8("max_rows", None)
     
     filename = str('%s_%s' % (host, service)).replace('.', '_')
     if start and end:
@@ -455,7 +472,7 @@ def get_file():
         html.req.content_type = 'image/png'
     
     try:
-        file = PyNPGraph(host, service, start, end, width, height, output_format).file
+        file = PyNPGraph(host, service, start, end, width, height, output_format, max_rows).file
     except Exception, e:
         html.req.content_type = 'image/png'
         file = exception_to_graph(e)
@@ -493,7 +510,7 @@ def exception_to_graph(e):
         draw.text((act_width, act_height), line, "#ffffff", font=font)
     
     tmp_string_io = StringIO()
-    img.save(tmp_string_io)
+    img.save(tmp_string_io, format = img.format)
     exception_graph = tmp_string_io.getvalue()
     tmp_string_io.close()
     

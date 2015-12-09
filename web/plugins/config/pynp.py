@@ -31,6 +31,7 @@ pynp_default_height      = None         # use default rrdtool height
 pynp_default_width       = None         # use default rrdtool width
 pynp_max_height          = 500          # max height of a graph
 pynp_max_width           = 2000         # max width of a graph
+pynp_max_rows            = 2000         # max rows for xport
 pynp_random_colors       = 8
 pynp_font                = 'Courier'
 pynp_replace_pnp_icon    = True
