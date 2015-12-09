@@ -159,7 +159,7 @@ class PyNPGraph(object):
             
             data = [header]
             
-            for i in range(files[0]['meta']['rows']):
+            for i in range(files[0]['meta']['rows'] - 1):
                 line = [time_idx]
                 for e in map(lambda x: x['data'][i], files):
                     line.extend(e)
