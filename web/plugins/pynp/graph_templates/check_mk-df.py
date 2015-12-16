@@ -22,10 +22,10 @@
 # | rand_color    | function | generate random hex color                  | rand_color(steps=8, index=None) => #7ffff00                                           |
 # +---------------+----------+--------------------------------------------+---------------------------------------------------------------------------------------+
 fs_name = ''
-
+escaped_servicedesc = servicedesc.replace('/', '_')
 #fs_name is ds that is part of servicedesc
 for ds in rrd_file.keys():
-    if ds in servicedesc:
+    if ds in escaped_servicedesc:
         fs_name = ds
         break
 
@@ -58,10 +58,14 @@ else:
         'CDEF:total_gb=var1',
     ])
 
+if perf_data[fs_name]['max']:
+    filesystem_usage['def'].extend([
+        'HRULE:%s#003300:Size (%.1f GB) ' % (maxgb, maxgb),
+        'HRULE:%s#ffff00:Warning at %.1f GB ' % (warngb, warngb),
+        'HRULE:%s#ff0000:Critical at %.1f GB \\n' % (critgb, critgb),
+    ])
+
 filesystem_usage['def'].extend([
-    'HRULE:%s#003300:Size (%.1f GB) ' % (maxgb, maxgb),
-    'HRULE:%s#ffff00:Warning at %.1f GB ' % (warngb, warngb),
-    'HRULE:%s#ff0000:Critical at %.1f GB \\n' % (critgb, critgb),
     'GPRINT:var1:LAST:current\: %6.2lf GB',
     'GPRINT:var1:MAX:max\: %6.2lf GB ',
     'GPRINT:var1:AVERAGE:avg\: %6.2lf GB\\n',
@@ -81,11 +85,6 @@ filesystem_usage['def'].extend([
 # of the third variable contains (size of the filesystem in MB
 # / range in hours). From that we can compute the configured range.
 if 'growth' in rrd_file:
-    size_mb_per_hours = float(perf_data['trend']['max'])
-    size_mb = float(perf_data[fs_name]['max'])
-    hours = 1.0 / (size_mb_per_hours / size_mb)
-    range = '%.0fh' % hours
-    
     #Current growth / shrinking. This value is give as MB / 24 hours.
     #Note: This has changed in 1.1.13i3. Prior it was MB / trend_range!
     
@@ -128,6 +127,12 @@ if 'growth' in rrd_file:
             'GPRINT:trend:LAST:%+7.2lf MB/24h',
         ]
     }
+    
+    if perf_data['trend']['warn'] or perf_data['trend']['crit']:
+        size_mb_per_hours = float(perf_data['trend']['max'])
+        size_mb = float(perf_data[fs_name]['max'])
+        hours = 1.0 / (size_mb_per_hours / size_mb)
+        #range = '%.0fh' % hours
     
     if perf_data['trend']['warn']:
         trend['def'].extend([

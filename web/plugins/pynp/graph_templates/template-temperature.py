@@ -32,7 +32,6 @@ temperature = {
         'vertical-label': 'Celsius'
     },
     'def': [
-            
         'DEF:var1=%s:1:MAX' % rrd_file['temp'],
         'AREA:var1#2080ff:Temperature\:',
         'GPRINT:var1:LAST:%2.0lfC',
