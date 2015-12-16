@@ -25,7 +25,7 @@ fs_name = ''
 escaped_servicedesc = servicedesc.replace('/', '_')
 #fs_name is ds that is part of servicedesc
 for ds in rrd_file.keys():
-    if ds in escaped_servicedesc:
+    if ds in escaped_servicedesc or ds in servicedesc:
         fs_name = ds
         break
 
