@@ -60,7 +60,7 @@ class PyNPGraph(object):
         self._dummy_perf_data = None
         self.rrd_host = str(pnp_cleanup(host))
         self.rrd_service = str(pnp_cleanup(service))
-        self.rrd_path = str(config.pynp_rrd_path)
+        self.rrd_path = str(config.pynp_rrd_cmc_path)
         self.rrd_file = '%s/%s/%s.rrd' % (self.rrd_path, self.rrd_host, self.rrd_service)
         self._rrd_file_index = {}
         self.rrd_info = '%s/%s/%s.info' % (self.rrd_path, self.rrd_host, self.rrd_service)

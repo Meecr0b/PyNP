@@ -41,7 +41,11 @@ def paint_pynpgraph(sitename, host, service = "Check_MK", show=True):
         height = get_painter_option("pynp_height")
         width = get_painter_option("pynp_width")
         
-        return "pynpgraph", "<div class=\"pynp_graph\" >" \
+        return "pynpgraph", "<script src=\"js/jquery.js\"></script>" \
+                            "<script src=\"js/imgareaselect.js\"></script>" \
+                            "<script src=\"js/pynp.js\"></script>" \
+                            "<link rel=\"stylesheet\" type=\"text/css\" href=\"pynp.css\"/>" \
+                            "<div class=\"pynp_graph\" >" \
                             "  <div style=\"position:relative;\">" \
                             "    <img class=\"pynp_img\" src=\"%scheck_mk/pynp.py?host=%s&service=%s&start=%s&end=%s&width=%s&height=%s\" title=\"%s/%s (%s - %s)\" alt=\"PyNP Graph\"/>" \
                             "    <a class=\"pynp_back\" title=\"Back\" alt=\"back button\"/>" \

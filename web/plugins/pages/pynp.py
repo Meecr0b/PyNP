@@ -22,20 +22,6 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-import htmllib
-# ugly monkey patch to load the requires css and js files
-def body_start(self, title='', **args):
-    if "javascripts" in args:
-        args["javascripts"].extend(
-            ['jquery', 'imgareaselect', 'pynp']      # hopefully there will be another way to load the jquery file
-        )
-    if "stylesheets" in args:
-        args["stylesheets"]+=['pynp']
-    self.html_head(title, **args)
-    self.write('<body class="main %s">' % self.var("_body_class", ""))
-
-htmllib.html.body_start = body_start
-
 def pynp_file():
     import pynp
     import time
