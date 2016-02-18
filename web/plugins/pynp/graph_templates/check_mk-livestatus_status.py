@@ -29,8 +29,8 @@ omd_check_performance = {
         'vertical-label': "Checks per second",
     },
     'def' : [
-        'DEF:host_checks=%s:1:MAX' % rrd_file['host_checks'],
-        'DEF:service_checks=%s:1:MAX' % rrd_file['service_checks'],
+        'DEF:host_checks=%s:%i:MAX' % (rrd_file['host_checks'], rrd_file_index['host_checks']),
+        'DEF:service_checks=%s:%i:MAX' % (rrd_file['service_checks'], rrd_file_index['host_checks']),
         'AREA:host_checks#842:Host checks             ',
         'GPRINT:host_checks:AVERAGE:% 6.1lf/s avg',
         'GPRINT:host_checks:LAST:% 6.1lf/s last\\n',
@@ -47,8 +47,8 @@ omd_livestatus_performance = {
         'vertical-label': "Events per second",
     },
     'def' : [
-        'DEF:connects=%s:1:MAX' % rrd_file['connections'],
-        'DEF:requests=%s:1:MAX' % rrd_file['requests'],
+        'DEF:connects=%s:%i:MAX' % (rrd_file['connections'], rrd_file_index['connections']),
+        'DEF:requests=%s:%i:MAX' % (rrd_file['requests'], rrd_file_index['requests']),
         'AREA:requests#abc:Livestatus Requests     ',
         'GPRINT:requests:AVERAGE:% 6.1lf/s avg',
         'GPRINT:requests:LAST:% 6.1lf/s last\\n',
@@ -65,8 +65,8 @@ omd_livestatus_connection_usage = {
         'vertical-label': "Requests per Connect"
     },
     'def' : [
-        'DEF:connects=%s:1:MAX' % rrd_file['connections'],
-        'DEF:requests=%s:1:MAX' % rrd_file['requests'],
+        'DEF:connects=%s:%i:MAX' % (rrd_file['connections'], rrd_file_index['connections']),
+        'DEF:requests=%s:%i:MAX' % (rrd_file['requests'], rrd_file_index['requests']),
         'CDEF:rpcs=requests,connects,/',
         'AREA:rpcs#8a3:Requests per Connection',
         'GPRINT:rpcs:AVERAGE:% 6.1lf/s avg',

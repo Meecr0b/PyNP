@@ -41,7 +41,7 @@ filesystem_usage = {
         'vertical-label': 'GB'
     },
     'def': [
-        'DEF:mb=%s:1:MAX' % rrd_file[fs_name],
+        'DEF:mb=%s:%i:MAX' % (rrd_file[fs_name], rrd_file_index[fs_name]),
         'CDEF:var1=mb,1024,/',
         'AREA:var1#00ffc6:used space on %s\\n' % servicedesc.replace(':', '\:'),
     ]
@@ -49,7 +49,7 @@ filesystem_usage = {
 
 if 'uncommited' in rrd_file:
     filesystem_usage['def'].extend([
-        'DEF:uncommitted_mb=%s:1:MAX' % rrd_file['uncommitted'],
+        'DEF:uncommitted_mb=%s:%i:MAX' % (rrd_file['uncommitted'], rrd_file_index['uncommitted']),
         'CDEF:uncommitted_gb=uncommitted_mb,1024,/', 
         'CDEF:total_gb=uncommitted_gb,var1,+',
     ])
@@ -97,9 +97,9 @@ if 'growth' in rrd_file:
             'vertical-label': '+/- MB / 24h'
         },
         'def': [
-            'DEF:growth_max=%s:1:MAX' % rrd_file['growth'],
-            'DEF:growth_min=%s:1:MIN'% rrd_file['growth'],
-            #'DEF:trend=%s:1:AVERAGE' % rrd_file['trend'],
+            'DEF:growth_max=%s:%i:MAX' % (rrd_file['growth'], rrd_file_index['growth']),
+            'DEF:growth_min=%s:%i:MIN' % (rrd_file['growth'], rrd_file_index['growth']),
+            #'DEF:trend=%s:%i:AVERAGE' % (rrd_file['trend'], rrd_file_index['trend']),
             'CDEF:growth_pos=growth_max,0,MAX',
             'CDEF:growth_neg=growth_min,0,MIN',
             'CDEF:growth_minabs=0,growth_min,-',
@@ -121,7 +121,7 @@ if 'growth' in rrd_file:
             'vertical-label': '+/- MB / 24h'
         },
         'def': [
-            'DEF:trend=%s:1:AVERAGE' % rrd_file['trend'],
+            'DEF:trend=%s:%i:AVERAGE' % (rrd_file['trend'], rrd_file_index['trend']),
             'HRULE:0#c0c0c0',
             'LINE1:trend#000000:Trend\:',
             'GPRINT:trend:LAST:%+7.2lf MB/24h',
@@ -158,8 +158,8 @@ if 'trend_hoursleft' in rrd_file:
             'vertical-label': 'Days left'
         },
         'def' : [
-            'DEF:hours_left=%s:1:AVERAGE' % rrd_file['trend_hoursleft'],
-            'DEF:hours_left_min=%s:1:MIN' % rrd_file['trend_hoursleft'],
+            'DEF:hours_left=%s:%i:AVERAGE' % (rrd_file['trend_hoursleft'], rrd_file_index['trend_hoursleft']),
+            'DEF:hours_left_min=%s:%i:MIN' % (rrd_file['trend_hoursleft'], rrd_file_index['trend_hoursleft']),
             # negative hours indicate no growth
             # the dataset hours_left_isneg stores this info for each point as True/False
             'CDEF:hours_left_isneg=hours_left_min,-1,EQ',

@@ -29,7 +29,7 @@ cpu_load = {
         'vertical-label': 'Load'
     }, 
     'def': [
-        'DEF:var1=%s:1:MAX' % rrd_file.values()[0],
+        'DEF:var1=%s:%i:MAX' % (rrd_file.values()[0], rrd_file_index.values()[0]),
         'HRULE:%s#FFFF00' % perf_data.values()[0]['warn'],
         'HRULE:%s#FF0000' % perf_data.values()[0]['crit'],
         'AREA:var1#2060a0:load ',

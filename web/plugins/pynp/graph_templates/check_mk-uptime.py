@@ -29,7 +29,7 @@ uptime = {
         'vertical-label': 'Uptime (d)'
     }, 
     'def': [
-        'DEF:sec=%s:1:MAX' % rrd_file['uptime'],
+        'DEF:sec=%s:%i:MAX' % (rrd_file['uptime'], rrd_file_index['uptime']),
         'CDEF:uptime=sec,86400,/',
         'AREA:uptime#80f000:Uptime (days)',
         'LINE:uptime#408000',

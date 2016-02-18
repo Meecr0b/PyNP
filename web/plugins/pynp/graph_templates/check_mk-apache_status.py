@@ -29,8 +29,8 @@ apache_status = {
         'vertical-label': "Connections"
     },
     'def' : [
-        'DEF:varTotal=%s:1:AVERAGE' % rrd_file["TotalSlots"],
-        'DEF:varOpen=%s:1:AVERAGE' % rrd_file["OpenSlots"],
+        'DEF:varTotal=%s:%i:AVERAGE' % (rrd_file["TotalSlots"], rrd_file_index['TotalSlots']),
+        'DEF:varOpen=%s:%i:AVERAGE' % (rrd_file["OpenSlots"], rrd_file_index['OpenSlots']),
     ]
 }
 
@@ -43,7 +43,7 @@ if perf_data['TotalSlots']['act']:
 for index, key in enumerate(perf_keys):
     if key.startswith('State'):
         apache_status['def'].extend([
-            'DEF:var%s=%s:1:AVERAGE' % (key, rrd_file[key]),
+            'DEF:var%s=%s:%i:AVERAGE' % (key, rrd_file[key], rrd_file_index[key]),
             'AREA:var%s%s:%s :STACK' % (key, rand_color(index=index), key[6:].ljust(16)) ,
             'GPRINT:var%s:LAST:Last %%5.1lf' % key,
             'GPRINT:var%s:MAX:Max %%5.1lf' % key,
@@ -69,7 +69,7 @@ if "ReqPerSec" in rrd_file:
             'vertical-label': "Requests/sec"
         },
         'def' : [
-            'DEF:varReqPerSec=%s:1:AVERAGE' % rrd_file["ReqPerSec"],
+            'DEF:varReqPerSec=%s:%i:AVERAGE' % (rrd_file["ReqPerSec"], rrd_file_index['ReqPerSec']),
             'LINE1:varReqPerSec#000000:ReqPerSec       :STACK',
             'GPRINT:varReqPerSec:LAST:Last %6.1lf',
             'GPRINT:varReqPerSec:MAX:Max %6.1lf',
@@ -85,7 +85,7 @@ if "BytesPerSec" in rrd_file:
             'vertical-label': "Bytes/sec"
         },
         'def' : [
-            'DEF:varBytesPerSec=%s:1:AVERAGE' % rrd_file['BytesPerSec'],
+            'DEF:varBytesPerSec=%s:%i:AVERAGE' % (rrd_file['BytesPerSec'], rrd_file_index['BytesPerSec']),
             'LINE1:varBytesPerSec%s:BytesPerSec     :STACK' % rand_color(index=perf_keys.index("BytesPerSec")),
             'GPRINT:varBytesPerSec:LAST:Last %6.1lf',
             'GPRINT:varBytesPerSec:MAX:Max %6.1lf',
@@ -103,7 +103,7 @@ for index, key in enumerate(perf_keys):
                 'title': "%s: Apache - %s" % (hostname, key),
             },
             'def' : [
-                'DEF:var%s=%s:1:AVERAGE' % (key, rrd_file[key]),
+                'DEF:var%s=%s:%i:AVERAGE' % (key, rrd_file[key], rrd_file_index[key]),
                 'LINE1:var%s%s:%s:STACK' % (key, rand_color(index=index), key.ljust(16)),
                 'GPRINT:var%s:LAST:Last %%6.1lf' % key,
                 'GPRINT:var%s:MAX:Max %%6.1lf' % key,
@@ -119,7 +119,7 @@ if 'Uptime' in rrd_file:
             'vertical-label': "Uptime (d)"
         },
         'def' : [
-            'DEF:sec=%s:1:MAX' % rrd_file['Uptime'],
+            'DEF:sec=%s:%i:MAX' % (rrd_file['Uptime'], rrd_file_index['Uptime']),
             'CDEF:uptime=sec,86400,/',
             'AREA:uptime#80f000:Uptime (days)',
             'LINE:uptime#408000',

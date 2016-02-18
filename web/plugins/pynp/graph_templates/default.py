@@ -29,7 +29,7 @@ for index, ds in enumerate(perf_keys):
     templates.append({
         'opt' : {},
         'def' : [
-            'DEF:a=%s:1:AVERAGE' % rrd_file[ds],
+            'DEF:a=%s:%i:AVERAGE' % (rrd_file[ds], rrd_file_index[ds]),
             'AREA:a%s:%s' % (rand_color(index=index), ds),
             'GPRINT:a:LAST:Last\: %%6.2lf %s' % unit[ds],
             'GPRINT:a:MAX:Max\: %%6.2lf %s' % unit[ds],

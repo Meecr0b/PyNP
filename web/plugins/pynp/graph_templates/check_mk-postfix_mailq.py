@@ -29,7 +29,7 @@ mail_queue_length = {
         'vertical-label': 'Mails',
     },
     'def' : [
-        'DEF:length=%s:1:MAX' % rrd_file['length'],
+        'DEF:length=%s:%i:MAX' % (rrd_file['length'], rrd_file_info['length']),
         'HRULE:%s#FFFF00' % perf_data['length']['warn'],
         'HRULE:%s#FF0000' % perf_data['length']['crit'],
         'AREA:length#6890a0:Mails',
@@ -49,7 +49,7 @@ mail_queue_size = {
         'title': 'Mail Queue Size',
     },
     'def' : [
-        'DEF:size=%s:1:MAX' % rrd_file['size'],
+        'DEF:size=%s:%i:MAX' % (rrd_file['size'], rrd_file_info['size']),
         'CDEF:queue_mb=size,1048576,/',
         'AREA:queue_mb#65ab0e:Megabytes',
         'LINE:queue_mb#206a0e',

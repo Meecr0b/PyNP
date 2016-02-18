@@ -33,8 +33,8 @@ if len(perf_data) >= 2:
         },
         'def': [
             'HRULE:0#a0a0a0',
-    # read
-            'DEF:read=%s:1:MAX' % rrd_file['read'],
+            # read
+            'DEF:read=%s:%i:MAX' % (rrd_file['read'], rrd_file_index['read']),
             'CDEF:read_mb=read,1048576,/',
             'AREA:read_mb#40c080:Read ',
             'GPRINT:read_mb:LAST:%8.1lf MB/s last',
@@ -46,14 +46,14 @@ if len(perf_data) >= 2:
     # read average as line in the same graph
     if 'read.avg' in rrd_file:
         diskstat['def'].extend([
-            'DEF:read_avg=%s:1:MAX' % rrd_file['read.avg'],
+            'DEF:read_avg=%s:%i:MAX' % (rrd_file['read.avg'], rrd_file_index['read.avg']),
             'CDEF:read_avg_mb=read_avg,1048576,/',
             'LINE:read_avg_mb#202020',
         ])
     
     # write
     diskstat['def'].extend([
-        'DEF:write=%s:1:MAX' % rrd_file['write'],
+        'DEF:write=%s:%i:MAX' % (rrd_file['write'], rrd_file_index['write']),
         'CDEF:write_mb=write,1048576,/',
         'CDEF:write_mb_neg=write_mb,-1,*',
         'AREA:write_mb_neg#4080c0:Write  ',
@@ -79,7 +79,7 @@ if len(perf_data) >= 2:
     # write average
     if 'write.avg' in rrd_file:
         diskstat['def'].extend([
-            'DEF:write_avg=%s:1:MAX' % rrd_file['write.avg'],
+            'DEF:write_avg=%s:%i:MAX' % (rrd_file['write.avg'], rrd_file_index['write.avg']),
             'CDEF:write_avg_mb=write_avg,1048576,/',
             'CDEF:write_avg_mb_neg=write_avg_mb,-1,*',
             'LINE:write_avg_mb_neg#202020',
@@ -94,7 +94,7 @@ if len(perf_data) >= 2:
                 'vertical-label': 'Latency (ms)'
             },
             'def': [
-                'DEF:latency=%s:1:MAX' % rrd_file['latency'],
+                'DEF:latency=%s:%i:MAX' % (rrd_file['latency'], rrd_file_index['latency']),
                 'AREA:latency#aaccdd:Latency',
                 'LINE:latency#7799aa',
                 'GPRINT:latency:LAST:%6.1lf ms last',
@@ -112,7 +112,7 @@ if len(perf_data) >= 2:
                 'vertical-label': 'IO Operations / sec'
             },
             'def': [
-                'DEF:ios=%s:1:MAX' % rrd_file['ios'],
+                'DEF:ios=%s:%i:MAX' % (rrd_file['ios'], rrd_file_index['ios']),
                 'AREA:ios#ddccaa:ios',
                 'LINE:ios#aa9977',
                 'GPRINT:ios:LAST:%6.1lf/sec last',
@@ -131,8 +131,8 @@ if len(perf_data) >= 2:
                 'vertical-label': 'Queue Length'
             },
             'def': [
-                'DEF:read=%s:1:MAX' % rrd_file['read_ql'],
-                'DEF:write=%s:1:MAX' % rrd_file['write_ql'],
+                'DEF:read=%s:%i:MAX' % (rrd_file['read_ql'], rrd_file_index['read_ql']),
+                'DEF:write=%s:%i:MAX' % (rrd_file['write_ql'], rrd_file_index['write_ql']),
                 'CDEF:writen=write,-1,*',
                 'HRULE:0#a0a0a0',
                 'AREA:read#669a76',
@@ -148,7 +148,7 @@ else:
             'vertical-label': 'Throughput (MByte/s) %'
         },
         'def': [
-            'DEF:kb=%s:1:AVERAGE' % rrd_file.values()[0],
+            'DEF:kb=%s:%i:AVERAGE' % (rrd_file.values()[0], rrd_file_index.values()[0]),
             'CDEF:mb=kb,1024,/',
             'AREA:mb#40c080',
             'HRULE:0#a0a0a0',

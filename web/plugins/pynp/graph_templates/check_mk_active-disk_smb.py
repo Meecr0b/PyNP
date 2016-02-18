@@ -14,6 +14,7 @@
 # | servicedesc   | string   | description of the service                 | "Interface 3"                                                                         |
 # | check_command | string   | name of the check_command                  | "check_mk-uptime"                                                                     |
 # | rrd_file      | dict     | rrd files accessible by ds                 | {"uptime": "/path/to/rrds/localhost/UPTIME_uptime.rrd"}                               |
+# | rrd_file_index| dict     | rrd file index accessible by ds            | {"uptime": 1}                                                                         |
 # | font          | string   | value of pynp_font in config               | "Courier"                                                                             |
 # | perf_data     | dict     | perf_data from livestatus accessible by ds | {'uptime': {'warn': None, 'crit': None, 'max': None, 'min': None, 'act': '12019013'}} |
 # | perf_keys     | list     | keys from perf_data in correct order       | ['rta', 'pl','rtmax', 'rtmin']                                                        |
@@ -39,7 +40,7 @@ active_disk = {
         'vertical-label': 'GB'
     }, 
     'def': [
-        'DEF:used_bytes=%s:1:MAX' % rrd_file[fs_name],
+        'DEF:used_bytes=%s:%i:MAX' % (rrd_file[fs_name], rrd_file_index[fs_name]),
         'CDEF:var1=used_bytes,%s,/' % giga,
         'AREA:var1#00ffc6:used space on %s\\n' % fs_name,
         'LINE1:var1#226600:',

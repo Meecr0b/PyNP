@@ -14,6 +14,7 @@
 # | servicedesc   | string   | description of the service                 | "Interface 3"                                                                         |
 # | check_command | string   | name of the check_command                  | "check_mk-uptime"                                                                     |
 # | rrd_file      | dict     | rrd files accessible by ds                 | {"uptime": "/path/to/rrds/localhost/UPTIME_uptime.rrd"}                               |
+# | rrd_file_index| dict     | rrd file index accessible by ds            | {"uptime": 1}                                                                         |
 # | font          | string   | value of pynp_font in config               | "Courier"                                                                             |
 # | perf_data     | dict     | perf_data from livestatus accessible by ds | {'uptime': {'warn': None, 'crit': None, 'max': None, 'min': None, 'act': '12019013'}} |
 # | perf_keys     | list     | keys from perf_data in correct order       | ['rta', 'pl','rtmax', 'rtmin']                                                        |
@@ -30,13 +31,13 @@ cpu_loads = {
         'vertical-label': 'Load average'
     },
     'def': [
-        'DEF:load1=%s:1:MAX' % rrd_file['load1'],
+        'DEF:load1=%s:%i:MAX' % (rrd_file['load1'], rrd_file_index['load1']),
         'AREA:load1#60c0e0:Load average  1 min ',
         'GPRINT:load1:LAST:%6.2lf last ',
         'GPRINT:load1:AVERAGE:%6.2lf avg ',
         'GPRINT:load1:MAX:%6.2lf max\\n',
 
-        'DEF:load15=%s:1:MAX' % rrd_file['load15'],
+        'DEF:load15=%s:%i:MAX' % (rrd_file['load15'], rrd_file_index['load15']),
         'LINE:load15#004080:Load average 15 min ',
         'GPRINT:load15:LAST:%6.2lf last ',
         'GPRINT:load15:AVERAGE:%6.2lf avg ',
@@ -58,6 +59,6 @@ if perf_data['load1']['max']:
 
 if 'predict_load15' in rrd_file:
     cpu_loads['def'].extend([
-        'DEF:predict=%s:1:MAX' % rrd_file['predict_load15'],
+        'DEF:predict=%s:%i:MAX' % (rrd_file['predict_load15'], rrd_file_index['predict_load15']),
         'LINE:predict#ff0000:Reference for prediction \\n',
     ])

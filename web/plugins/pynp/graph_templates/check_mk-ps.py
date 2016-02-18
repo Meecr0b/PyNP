@@ -37,7 +37,7 @@ number_of_processes = {
         'vertical-label': 'count'
     }, 
     'def': [
-        'DEF:count=%s:1:MAX' % rrd_file['count'],
+        'DEF:count=%s:%i:MAX' % (rrd_file['count'], rrd_file_info['count']),
         'AREA:count#8040f0:Processes     ',
         'LINE1:count#202060:',
         'GPRINT:count:LAST:Current\: %3.0lf',
@@ -56,9 +56,9 @@ if 'vsz' in perf_data:
             'vertical-label': 'MB'
         }, 
         'def': [
-            'DEF:count=%s:1:MAX' % rrd_file['count'],
-            'DEF:vsz=%s:1:MAX' % rrd_file['vsz'],
-            'DEF:rss=%s:1:MAX' % rrd_file['rss'],
+            'DEF:count=%s:%i:MAX' % (rrd_file['count'], rrd_file_info['count']),
+            'DEF:vsz=%s:%i:MAX' % (rrd_file['vsz'], rrd_file_info['vsz']),
+            'DEF:rss=%s:%i:MAX' % (rrd_file['rss'], rrd_file_info['rss']),
             'CDEF:vszmb=vsz,1024,/,count,/',
             'CDEF:rssmb=rss,1024,/,count,/',
             'AREA:vszmb#90a0f0:Virtual size ',
@@ -82,7 +82,7 @@ if 'pcpu' in perf_data:
             'vertical-label': 'CPU(%)'
         }, 
         'def': [
-            'DEF:pcpu=%s:1:MAX' % rrd_file['pcpu'],
+            'DEF:pcpu=%s:%i:MAX' % (rrd_file['pcpu'], rrd_file_info['pcpu']),
             'AREA:pcpu#30ff80:CPU usage (%) ',
             'LINE:pcpu#20a060:',
             'GPRINT:pcpu:LAST:Current\: %4.1lf%%',

@@ -39,7 +39,7 @@ cpu_threads = {
         'vertical-label': vertical,
     }, 
     'def': [
-        'DEF:var1=%s:1:MAX' % rrd_file['threads'],
+        'DEF:var1=%s:%i:MAX' % (rrd_file['threads'], rrd_file_index['threads']),
         'AREA:var1#%s:%s' % (color, title),
         'LINE1:var1#%s:' % line,
         'GPRINT:var1:LAST:Current\: %s' % format,

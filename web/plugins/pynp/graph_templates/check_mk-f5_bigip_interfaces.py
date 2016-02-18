@@ -33,8 +33,8 @@ bigip_interface = {
         'vertical-label': 'bytes per second'
     },
     'def' : [
-        'DEF:in=%s:1:MAX' % rrd_file['bytes_in'],
-        'DEF:out=%s:1:MAX' % rrd_file['bytes_out'],
+        'DEF:in=%s:%i:MAX' % (rrd_file['bytes_in'], rrd_file_index['bytes_in']),
+        'DEF:out=%s:%i:MAX' % (rrd_file['bytes_out'], rrd_file_index['bytes_out']),
         'CDEF:kb_out=out,1024,/',
         'CDEF:kb_in=in,1024,/',
         'AREA:in#18DF18:Inbound',

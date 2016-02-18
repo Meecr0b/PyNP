@@ -30,7 +30,7 @@ cpu_utilization = {
         'vertical-label': 'CPU utilization %'
     }, 
     'def': [
-        'DEF:util=%s:1:MAX' % rrd_file['util'],
+        'DEF:util=%s:%i:MAX' % (rrd_file['util'], rrd_file_index['util']),
         'CDEF:ok=util,%s,MIN'% perf_data['util']['warn'],
         'CDEF:warn=util,%s,MIN'% perf_data['util']['crit'],
         'AREA:util#c0f020',

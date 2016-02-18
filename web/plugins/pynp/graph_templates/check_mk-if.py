@@ -122,7 +122,7 @@ if crit:
 
 if_bandwidth['def'].extend([
     # incoming
-    'DEF:inbytes=%s:1:MAX' % rrd_file['in'],
+    'DEF:inbytes=%s:%i:MAX' % (rrd_file['in'], rrd_file_index['in']),
     'CDEF:intraffic=inbytes,%s,*' % unit_multiplier,
     'CDEF:inmb=intraffic,%s,/' % scale,
     'AREA:inmb#00e060:in            ',
@@ -135,7 +135,7 @@ if_bandwidth['def'].extend([
     'GPRINT:inperc:%%7.1lf %%s%s/s\\n' % unit,
     
     # outgoing
-    'DEF:outbytes=%s:1:MAX' % rrd_file['out'],
+    'DEF:outbytes=%s:%i:MAX' % (rrd_file['out'], rrd_file_index['out']),
     'CDEF:outtraffic=outbytes,%s,*' % unit_multiplier,
     'CDEF:minusouttraffic=outtraffic,-1,*',
     'CDEF:outmb=outtraffic,%s,/' % scale,
@@ -152,8 +152,8 @@ if_bandwidth['def'].extend([
 
 if len(rrd_file) > 11:
     if_bandwidth['def'].extend([
-        'DEF:inbytesa=%s:MAX' % rrd_file['ina'],
-        'DEF:outbytesa=%s:MAX' % rrd_file['outa'],
+        'DEF:inbytesa=%s:%i:MAX' % (rrd_file['ina'], rrd_file_index['ina']),
+        'DEF:outbytesa=%s:%i:MAX' % (rrd_file['outa'], rrd_file_index['outa']),
         'CDEF:intraffica=inbytesa,%s,*' % unit_multiplier,
         'CDEF:outtraffica=outbytesa,%s,*' % unit_multiplier,
         'CDEF:inmba=intraffica,1048576,/',
@@ -178,8 +178,8 @@ if_packets = {
     'def': [
         # ingoing
         'HRULE:0#c0c0c0',
-        'DEF:inu=%s:1:MAX' % rrd_file['inucast'],
-        'DEF:innu=%s:1:MAX' % rrd_file['innucast'],
+        'DEF:inu=%s:%i:MAX' % (rrd_file['inucast'], rrd_file_index['inucast']),
+        'DEF:innu=%s:%i:MAX' % (rrd_file['innucast'], rrd_file_index['innucast']),
         'CDEF:in=inu,innu,+',
         'AREA:inu#00ffc0:in unicast             ',
         'GPRINT:inu:LAST:%9.1lf/s last',
@@ -194,8 +194,8 @@ if_packets = {
         'GPRINT:inperc:%9.1lf/s\\n',
         
         # outgoing
-        'DEF:outu=%s:1:MAX' % rrd_file['outucast'],
-        'DEF:outnu=%s:1:MAX' % rrd_file['outnucast'],
+        'DEF:outu=%s:%i:MAX' % (rrd_file['outucast'], rrd_file_index['outucast']),
+        'DEF:outnu=%s:%i:MAX' % (rrd_file['outnucast'], rrd_file_index['outnucast']),
         'CDEF:minusoutu=0,outu,-',
         'CDEF:minusoutnu=0,outnu,-',
         'CDEF:minusout=minusoutu,minusoutnu,+',
@@ -222,8 +222,8 @@ if_problems = {
     }, 
     'def': [
         'HRULE:0#c0c0c0',
-        'DEF:inerr=%s:1:MAX' % rrd_file['inerr'],
-        'DEF:indisc=%s:1:MAX' % rrd_file['indisc'],
+        'DEF:inerr=%s:%i:MAX' % (rrd_file['inerr'], rrd_file_index['inerr']),
+        'DEF:indisc=%s:%i:MAX' % (rrd_file['indisc'], rrd_file_index['indisc']),
         'AREA:inerr#ff0000:in errors               ',
         'GPRINT:inerr:LAST:%7.2lf/s last  ',
         'GPRINT:inerr:AVERAGE:%7.2lf/s avg  ',
@@ -232,8 +232,8 @@ if_problems = {
         'GPRINT:indisc:LAST:%7.2lf/s last  ',
         'GPRINT:indisc:AVERAGE:%7.2lf/s avg  ',
         'GPRINT:indisc:MAX:%7.2lf/s max\\n',
-        'DEF:outerr=%s:1:MAX' % rrd_file['outerr'],
-        'DEF:outdisc=%s:1:MAX' % rrd_file['outdisc'],
+        'DEF:outerr=%s:%i:MAX' % (rrd_file['outerr'], rrd_file_index['outerr']),
+        'DEF:outdisc=%s:%i:MAX' % (rrd_file['outdisc'], rrd_file_index['outdisc']),
         'CDEF:minusouterr=0,outerr,-',
         'CDEF:minusoutdisc=0,outdisc,-',
         'AREA:minusouterr#ff0080:out errors              ',

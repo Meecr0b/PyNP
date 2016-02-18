@@ -78,7 +78,7 @@ vserver_cur_conns = {
         'vertical-label': 'Connections'
     },
     'def' : [
-        'DEF:cur_conns=%s:1:MAX' % rrd_file['cur_conns'],
+        'DEF:cur_conns=%s:%i:MAX' % (rrd_file['cur_conns'], rrd_file_index['cur_conns']),
         'AREA:cur_conns#6666FF:Current Client Connections',
         'LINE1:cur_conns#6600FF::',
         'GPRINT:cur_conns:LAST:%7.1lf last',
@@ -94,7 +94,7 @@ vserver_conns_per_sec = {
         'vertical-label': 'Connections/sec'
     },
     'def' : [
-        'DEF:conn_per_s=%s:1:MAX' % rrd_file['clients_per_sec'],
+        'DEF:conn_per_s=%s:%i:MAX' % (rrd_file['clients_per_sec'], rrd_file_index['clients_per_sec']),
         'AREA:conn_per_s#33CCFF:Connects',
         'LINE1:conn_per_s#3366FF::',
         'GPRINT:conn_per_s:LAST:%7.1lf/s last',
@@ -112,14 +112,14 @@ vserver_in_out = {
         'vertical-label': '%sB/sec' % bwuom
     },
     'def' : [
-        'DEF:outbytes=%s:1:MAX' % rrd_file['out_bytes'],
+        'DEF:outbytes=%s:%i:MAX' % (rrd_file['out_bytes'], rrd_file_index['out_bytes']),
         'CDEF:outmb=outbytes,%s,/' % scale,
         'AREA:outmb#0080e0FF:%s' % 'out'.ljust(10),
         'GPRINT:outbytes:LAST:%7.1lf %sB/s last',
         'GPRINT:outbytes:AVERAGE:%7.1lf %sB/s avg',
         'GPRINT:outbytes:MAX:%7.1lf %sB/s max\\n',
 
-        'DEF:inbytes=%s:1:MAX' % rrd_file['in_bytes'],
+        'DEF:inbytes=%s:%i:MAX' % (rrd_file['in_bytes'], rrd_file_index['in_bytes']),
         'CDEF:inmb=inbytes,%s,/' % scale,
         'LINE3:inmb#000000:',
         'LINE1:inmb#00FF00:%s' % 'in'.ljust(10),
@@ -138,13 +138,13 @@ vserver_pack_in_out = {
     },
     'def' : [
         'HRULE:0#C0C0C0',
-        'DEF:out=%s:1:MAX' % rrd_file['out_pkts'],
+        'DEF:out=%s:%i:MAX' % (rrd_file['out_pkts'], rrd_file_index['out_pkts']),
         'AREA:out#0080e0:out       ',
         'GPRINT:out:LAST:%.1lf/s last',
         'GPRINT:out:AVERAGE:%.1lf/s avg',
         'GPRINT:out:MAX:%.1lf/s max\\n',
         
-        'DEF:in=%s:1:MAX' % rrd_file['in_pkts'],
+        'DEF:in=%s:%i:MAX' % (rrd_file['in_pkts'], rrd_file_index['in_pkts']),
         'LINE3:in#000000:',
         'LINE1:in#00ff00:in        ',
         'GPRINT:in:LAST:%.1lf/s last',

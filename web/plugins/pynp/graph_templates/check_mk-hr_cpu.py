@@ -30,7 +30,7 @@ cpu_utilization = {
         'vertical-label': 'CPU utilization'
     },
     'def': [
-        'DEF:util=%s:1:AVERAGE' % rrd_file['util'],
+        'DEF:util=%s:%i:AVERAGE' % (rrd_file['util'], rrd_file_index['util']),
         'CDEF:idle=100,util,-',
 
         'AREA:util#60f020:Utilization:STACK',

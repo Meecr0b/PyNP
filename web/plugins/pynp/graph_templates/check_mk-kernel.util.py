@@ -37,9 +37,9 @@ cpu_utilization = {
         'vertical-label': 'CPU utilization %'
     },
     'def': [
-        'DEF:user=%s:1:AVERAGE' % rrd_file['user'],
-        'DEF:system=%s:1:AVERAGE' % rrd_file['system'],
-        'DEF:wait=%s:1:AVERAGE' % rrd_file[thirdds],
+        'DEF:user=%s:%i:AVERAGE' % (rrd_file['user'], rrd_file_index['user']),
+        'DEF:system=%s:%i:AVERAGE' % (rrd_file['system'], rrd_file_index['system']),
+        'DEF:wait=%s:%i:AVERAGE' % (rrd_file[thirdds], rrd_file_index[thirdds]),
         'CDEF:us=user,system,+',
         'CDEF:sum=us,wait,+',
         'CDEF:idle=100,sum,-',

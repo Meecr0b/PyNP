@@ -22,8 +22,51 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-import pynp
+import htmllib
+# ugly monkey patch to load the requires css and js files
+def body_start(self, title='', **args):
+    if "javascripts" in args:
+        args["javascripts"].extend(
+            ['jquery', 'imgareaselect', 'pynp']      # hopefully there will be another way to load the jquery file
+        )
+    if "stylesheets" in args:
+        args["stylesheets"]+=['pynp']
+    self.html_head(title, **args)
+    self.write('<body class="main %s">' % self.var("_body_class", ""))
+
+htmllib.html.body_start = body_start
+
+def pynp_file():
+    import pynp
+    import time
+    host = html.var_utf8("host")
+    service = html.var_utf8("service")
+    start = html.var_utf8("start", None)
+    end = html.var_utf8("end", None)
+    width = html.var_utf8("width", None)
+    height = html.var_utf8("height", None)
+    output_format = html.var_utf8("output_format", "png")
+    max_rows = html.var_utf8("max_rows", None)
+    
+    filename = str('%s_%s' % (host, service)).replace('.', '_')
+    if start and end:
+        start_str = time.strftime("%Y%m%d%H%M", time.localtime(int(start)))
+        end_str = time.strftime("%Y%m%d%H%M", time.localtime(int(end)))
+        filename += '__%s-%s' % (start_str, end_str)
+    html.req.headers_out['Content-Disposition'] = 'filename=%s.%s' % (filename, str(output_format))
+    
+    if output_format == 'csv':
+        html.req.content_type = 'text/csv'
+    else:
+        html.req.content_type = 'image/png'
+    try:
+        file= pynp.PyNPGraph(host, service, start, end, width, height, output_format, max_rows).file
+    except Exception, e:
+        html.req.content_type = 'image/png'
+        file = pynp.exception_to_graph(e)
+        
+    html.write(file)
 
 pagehandlers.update({
-   "pynp"       : pynp.get_file,
+   "pynp"       : pynp_file,
 })

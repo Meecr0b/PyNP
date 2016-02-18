@@ -38,9 +38,9 @@ if 'pagetables' in rrd_file:
     ])
 
 used_mem['def'].extend([
-    'DEF:ram=%s:1:MAX' % rrd_file['ramused'],
-    'DEF:virt=%s:1:MAX' % rrd_file['memused'],
-    'DEF:swap=%s:1:MAX' % rrd_file['swapused'],
+    'DEF:ram=%s:%i:MAX' % (rrd_file['ramused'], rrd_file_index['ramused']),
+    'DEF:virt=%s:%i:MAX' % (rrd_file['memused'], rrd_file_index['memused']),
+    'DEF:swap=%s:%i:MAX' % (rrd_file['swapused'], rrd_file_index['swapused']),
 
     'HRULE:%s#000080:RAM+SWAP installed' % perf_data['memused']['max'],
     'HRULE:%s#2040d0:%.1f GB RAM installed' % (perf_data['ramused']['max'], float(perf_data['ramused']['max']) / 1024),
@@ -81,7 +81,7 @@ else:
 
 if 'mapped' in rrd_file:
     used_mem['def'].extend([
-        'DEF:mapped=%s:1:MAX' % rrd_file['mapped'],
+        'DEF:mapped=%s:%i:MAX' % (rrd_file['mapped'], rrd_file_index['mapped']),
         'LINE2:mapped#8822ff:Memory mapped   ',
         'GPRINT:mapped:LAST:%6.0lf MB last',
         'GPRINT:mapped:AVERAGE:%6.0lf MB avg',
@@ -90,7 +90,7 @@ if 'mapped' in rrd_file:
 
 if 'committed_as' in rrd_file:
     used_mem['def'].extend([
-        'DEF:committed=%s:1:MAX' % rrd_file['committed_as'],
+        'DEF:committed=%s:%i:MAX' % (rrd_file['committed_as'], rrd_file_index['committed_as']),
         'LINE2:committed#cc00dd:Committed       ',
         'GPRINT:committed:LAST:%6.0lf MB last',
         'GPRINT:committed:AVERAGE:%6.0lf MB avg',
@@ -100,7 +100,7 @@ if 'committed_as' in rrd_file:
 # Shared memory is part of RAM. So simply overlay it
 if 'shared' in rrd_file:
     used_mem['def'].extend([
-        'DEF:shared=%s:1:MAX' % rrd_file['shared'],
+        'DEF:shared=%s:%i:MAX' % (rrd_file['shared'], rrd_file_index['shared']),
         'AREA:shared#44ccff:Shared Memory   ',
         'GPRINT:shared:LAST:%6.0lf MB last',
         'GPRINT:shared:AVERAGE:%6.0lf MB avg',

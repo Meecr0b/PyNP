@@ -29,8 +29,8 @@ ping = {
         'vertical-label': 'RTA (ms)'
     },
     'def': [
-        'DEF:var1=%s:1:AVERAGE' % rrd_file['rta'],
-        'DEF:var2=%s:1:MAX' % rrd_file['pl'],
+        'DEF:var1=%s:%i:AVERAGE' % (rrd_file['rta'], rrd_file_index['rta']),
+        'DEF:var2=%s:%i:MAX' % (rrd_file['pl'], rrd_file_index['pl']),
         'VDEF:maxrta=var1,MAXIMUM',
         'CDEF:loss1=var2,100,/,maxrta,*',
         'CDEF:sp1=var1,100,/,12,*',

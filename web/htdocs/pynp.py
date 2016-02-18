@@ -57,12 +57,13 @@ class PyNPGraph(object):
         self.end = end and int(end)
         self._file = None
         self._template = None
-        self._rrd_files = None
         self._dummy_perf_data = None
         self.rrd_host = str(pnp_cleanup(host))
         self.rrd_service = str(pnp_cleanup(service))
         self.rrd_path = str(config.pynp_rrd_path)
-        self.rrd_path_host = '%s/%s' % (self.rrd_path, self.rrd_host)
+        self.rrd_file = '%s/%s/%s.rrd' % (self.rrd_path, self.rrd_host, self.rrd_service)
+        self._rrd_file_index = {}
+        self.rrd_info = '%s/%s/%s.info' % (self.rrd_path, self.rrd_host, self.rrd_service)
         self.__rrd_cached_socket = str(config.pynp_rrd_cached_socket)
         self.__rrd_update_interval = int(config.pynp_rrd_update_interval)
         self.output_format = output_format
@@ -95,18 +96,18 @@ class PyNPGraph(object):
         return self._template
     
     @property
-    def rrd_files(self):
-        """Return the RRD-Files for this host & service"""
-        if not self._rrd_files:
-            self.lookup_rrd_files()
-        return self._rrd_files
-    
-    @property
     def dummy_perf_data(self):
         """Return a dummy perf_data line"""
         if not self._dummy_perf_data:
-            self.lookup_rrd_files()
+            self.lookup_rrd_info()
         return self._dummy_perf_data
+    
+    @property
+    def rrd_file_index(self):
+        """Return a dummy perf_data line"""
+        if not self._rrd_file_index:
+            self.lookup_rrd_info()
+        return self._rrd_file_index
     
     @property
     def height(self):
@@ -125,7 +126,6 @@ class PyNPGraph(object):
         if self._max_rows > config.pynp_max_rows:
             self._max_rows = config.pynp_max_rows
         return self._max_rows
-
     
     def create_file(self):
         """Flush the rrd_cache if it's necessary, then get the rrd-config, generate the graph(s) and merge them to a single file"""
@@ -147,13 +147,16 @@ class PyNPGraph(object):
             
     def flush_rrd_cache(self):
         """Flush the rrd_cache for necessary files"""
-        rrdtool.flushcached('--daemon', self.__rrd_cached_socket,
-            map(lambda x: '/'.join([self.rrd_path_host, x.encode('ascii', 'replace')]), self.rrd_files))
+        rrdtool.flushcached('--daemon', self.__rrd_cached_socket, [self.rrd_file])
     
-    def lookup_rrd_files(self):
-        """Search existing rrd_files for this host & service and generate dummy perf_data"""
-        self._rrd_files = filter(lambda x: x.startswith(self.rrd_service + '_') and x.endswith('.rrd'), os.listdir(self.rrd_path_host))
-        self._dummy_perf_data = '=;;;; '.join(map(lambda x: x[len(self.service)+1:-4], self._rrd_files)) + '=;;;;'
+    def lookup_rrd_info(self):
+        """generate dummy perf_data"""
+        #self._dummy_perf_data = '=;;;; '.join(map(lambda x: x[len(self.service)+1:-4], self._rrd_files)) + '=;;;;'
+        #self._rrd_file = '%s.rrd' % self.rrd_service
+        with open(self.rrd_info) as info:
+            metrics = re.search('(?:METRICS (.*?)\n)', info.read()).groups()[0]
+        self._rrd_file_index = dict((v, k+1) for k, v in enumerate(metrics.split(';')))
+        self._dummy_perf_data = '=;;;; '.join(metrics.split(';')) + '=;;;;'
     
     def merge_files(self, files):
         """Merge multiple files to a single file and returns them as string"""
@@ -211,6 +214,7 @@ class PyNPTemplate(object):
         self._unit = {}
         self._check_command = None
         self._rrd_file = {}
+        self._rrd_file_index = {}
         self._substitutions = None
         self.__xport_formats = ['csv']
     
@@ -258,6 +262,7 @@ class PyNPTemplate(object):
                 'hostname'      : self.__graph.host,
                 'servicedesc'   : self.__graph.service,
                 'rrd_file'      : self.rrd_file,
+                'rrd_file_index': self.__graph.rrd_file_index,
                 'font'          : self.__font,
                 'perf_data'     : self.perf_data,
                 'perf_keys'     : self.perf_keys,
@@ -372,10 +377,10 @@ class PyNPTemplate(object):
         if not perf_data:
             perf_data = self.__graph.dummy_perf_data
         
-        for perf_line in perf_data.split():
+        for index, perf_line in enumerate(perf_data.split()):
             if u'=' in perf_line:
                 key, values = str(perf_line).split('=')
-                self._rrd_file[key] = str("%s/%s/%s_%s.rrd" % (self.__graph.rrd_path, self.__graph.rrd_host, self.__graph.rrd_service, pnp_cleanup(key)))
+                self._rrd_file[key] = self.__graph.rrd_file
                 self._perf_keys.append(key)
                 perf_val = dict(
                     izip_longest(
@@ -448,37 +453,6 @@ class PyNPTemplate(object):
         lightness = 0.5
         return "#%02x%02x%02x" % tuple(map(lambda x: int(x*255), colorsys.hls_to_rgb(hue, lightness, saturation)))
 
-
-def get_file():
-    host = html.var_utf8("host")
-    service = html.var_utf8("service")
-    start = html.var_utf8("start", None)
-    end = html.var_utf8("end", None)
-    width = html.var_utf8("width", None)
-    height = html.var_utf8("height", None)
-    output_format = html.var_utf8("output_format", "png")
-    max_rows = html.var_utf8("max_rows", None)
-    
-    filename = str('%s_%s' % (host, service)).replace('.', '_')
-    if start and end:
-        start_str = time.strftime("%Y%m%d%H%M", time.localtime(int(start)))
-        end_str = time.strftime("%Y%m%d%H%M", time.localtime(int(end)))
-        filename += '__%s-%s' % (start_str, end_str)
-    html.req.headers_out['Content-Disposition'] = 'filename=%s.%s' % (filename, str(output_format))
-    
-    if output_format == 'csv':
-        html.req.content_type = 'text/csv'
-    else:
-        html.req.content_type = 'image/png'
-    
-    try:
-        file = PyNPGraph(host, service, start, end, width, height, output_format, max_rows).file
-    except Exception, e:
-        html.req.content_type = 'image/png'
-        file = exception_to_graph(e)
-        
-    html.write(file)
-
 def exception_to_graph(e):
     font = ImageFont.load_default()
     
@@ -515,17 +489,3 @@ def exception_to_graph(e):
     tmp_string_io.close()
     
     return exception_graph
-
-
-# ugly monkey patch to load the requires css and js files
-def body_start(self, title='', **args):
-    if "javascripts" in args:
-        args["javascripts"].extend(
-            ['jquery', 'imgareaselect', 'pynp']      # hopefully there will be another way to load the jquery file
-        )
-    if "stylesheets" in args:
-        args["stylesheets"]+=['pynp']
-    self.html_head(title, **args)
-    self.write('<body class="main %s">' % self.var("_body_class", ""))
-
-htmllib.html.body_start = body_start

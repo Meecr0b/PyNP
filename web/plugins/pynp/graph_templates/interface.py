@@ -140,8 +140,8 @@ interface_pack_in_out = {
     },
     'def' : [
         'HRULE:0#C0C0C0',
-        'DEF:outu=%s:1:MAX' % rrd_file['outucast'],
-        'DEF:outnu=%s:1:MAX' % rrd_file['outnucast'],
+        'DEF:outu=%s:%i:MAX' % (rrd_file['outucast'], rrd_file_info['outucast']),
+        'DEF:outnu=%s:%i:MAX' % (rrd_file['outnucast'], rrd_file_info['outnucast']),
         'AREA:outu#2EA5FF:%s' % 'out unicast'.ljust(25),
         'GPRINT:outu:LAST:%7.1lf %s/s last',
         'GPRINT:outu:AVERAGE:%7.1lf %s/s avg',
@@ -151,8 +151,8 @@ interface_pack_in_out = {
         'GPRINT:outnu:AVERAGE:%7.1lf %s/s avg',
         'GPRINT:outnu:MAX:%7.1lf %s/s max\\n',
         
-        'DEF:inu=%s:1:MAX' % rrd_file['inucast'],
-        'DEF:innu=%s:1:MAX' % rrd_file['innucast'],
+        'DEF:inu=%s:%i:MAX' % (rrd_file['inucast'], rrd_file_info['inucast']),
+        'DEF:innu=%s:%i:MAX' % (rrd_file['innucast'], rrd_file_info['innucast']),
         'LINE3:inu#000000:',
         'LINE1:inu#A5FF2E:%s' % 'in unicast'.ljust(25),
         'GPRINT:inu:LAST:%7.1lf %s/s last',
@@ -175,8 +175,8 @@ interface_prob = {
     },
     'def' : [
         'HRULE:0#C0C0C0',
-        'DEF:inerr=%s:1:MAX' % rrd_file['inerr'],
-        'DEF:indisc=%s:1:MAX' % rrd_file['indisc'],
+        'DEF:inerr=%s:%i:MAX' % (rrd_file['inerr'], rrd_file_info['inerr']),
+        'DEF:indisc=%s:%i:MAX' % (rrd_file['indisc'], rrd_file_info['indisc']),
         'AREA:inerr#ff0000:%s' % 'in errors'.ljust(15),
         'GPRINT:inerr:LAST:%7.1lf %s/s last',
         'GPRINT:inerr:AVERAGE:%7.1lf %s/s avg',
@@ -185,8 +185,8 @@ interface_prob = {
         'GPRINT:indisc:LAST:%7.1lf %s/s last',
         'GPRINT:indisc:AVERAGE:%7.1lf %s/s avg',
         'GPRINT:indisc:MAX:%7.1lf %s/s max\\n',
-        'DEF:outerr=%s:1:MAX' % rrd_file['outerr'],
-        'DEF:outdisc=%s:1:MAX' % rrd_file['outdisc'],
+        'DEF:outerr=%s:%i:MAX' % (rrd_file['outerr'], rrd_file_info['outerr']),
+        'DEF:outdisc=%s:%i:MAX' % (rrd_file['outdisc'],, rrd_file_info['outdisc'])
         'CDEF:minusouterr=0,outerr,-',
         'CDEF:minusoutdisc=0,outdisc,-',
         'AREA:minusouterr#ff0080:%s' % 'out errors'.ljust(15),

@@ -61,7 +61,7 @@ kernel = {
         'vertical-label': vertical,
     }, 
     'def': [
-        'DEF:var1=%s:1:MAX' % rrd_file.values()[0],
+        'DEF:var1=%s:%i:MAX' % (rrd_file.values()[0], rrd_file_index.values()[0]),
         'AREA:var1#%s:%s\:' % (color, title),
         'LINE1:var1#%s:' % line,
         'GPRINT:var1:LAST:Current\: %s' % format,

@@ -32,7 +32,7 @@ client_conns = {
         'vertical-label': 'Client connections'
     },
     'def' : [
-        'DEF:conns=%s:1:MAX' % rrd_file['connections'],
+        'DEF:conns=%s:%i:MAX' % (rrd_file['connections'], rrd_file_index['connections']),
         'AREA:conns#4060a0:Current Client Connections',
         'LINE:conns#203060',
         'GPRINT:conns:LAST:%7.0lf %s LAST',
@@ -47,7 +47,7 @@ connects_per_sec = {
         'vertical-label': 'Connects/sec'
     },
     'def' : [
-        'DEF:conns=%s:1:MAX' % rrd_file['conn_rate'],
+        'DEF:conns=%s:%i:MAX' % (rrd_file['conn_rate'], rrd_file_index['conn_rate']),
         'AREA:conns#80a0f0:Connects/sec',
         'LINE:conns#4060a0',
         'GPRINT:conns:LAST:%7.0lf %s LAST',

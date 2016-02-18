@@ -51,7 +51,7 @@ for element in ds_colors:
     else:
         nl = ''
     tcp_conn_stats['def'].extend([
-        'DEF:%s=%s:1:MAX' % (element['ds'], rrd_file[element['ds']]),
+        'DEF:%s=%s:%i:MAX' % (element['ds'], rrd_file[element['ds']], rrd_file_info[element['ds']]),
         'AREA:%s#%s:%s:STACK' % (element['ds'], element['color'], element['ds']),
         'GPRINT:%s:LAST:%s%%3.0lf%s' % (element['ds'], ' ' * (11-len(element['ds'])), nl)
     ])
