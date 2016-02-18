@@ -187,7 +187,7 @@ interface_prob = {
         'GPRINT:indisc:AVERAGE:%7.1lf %s/s avg',
         'GPRINT:indisc:MAX:%7.1lf %s/s max\\n',
         'DEF:outerr=%s:%i:MAX' % (rrd_file['outerr'], rrd_file_info['outerr']),
-        'DEF:outdisc=%s:%i:MAX' % (rrd_file['outdisc'],, rrd_file_info['outdisc'])
+        'DEF:outdisc=%s:%i:MAX' % (rrd_file['outdisc'], rrd_file_info['outdisc']),
         'CDEF:minusouterr=0,outerr,-',
         'CDEF:minusoutdisc=0,outdisc,-',
         'AREA:minusouterr#ff0080:%s' % 'out errors'.ljust(15),
