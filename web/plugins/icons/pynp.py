@@ -44,8 +44,8 @@ def pynp_icon(row, what):
         url = pynp_url(row, what)
     else:
         url = ""
-    return '<a href="%s" onmouseover="displayHoverMenu(event, pynp_hover_contents(\'%s\'))" ' \
-           'onmouseout="hoverHide()">%s</a>' % (url, pynp_img(row, what), html.render_icon('pnp', ''))
+    return '<a href="%s" onmouseover="show_hover_menu(event, \'<table><tr><td><img width=400px src=%s></td></tr></table>\')"' \
+           'onmouseout="hide_hover_menu()">%s</a>' % (url, pynp_img(row, what), html.render_icon('pnp', ''))
 
 def paint_pynp_graph(what, row, tags, custom_vars):
     pnpgraph_present = row[what + "_pnpgraph_present"]
@@ -53,10 +53,12 @@ def paint_pynp_graph(what, row, tags, custom_vars):
         return pynp_icon(row, what)
 
 if config.pynp_replace_pnp_icon:
-    multisite_icons = [x for x in multisite_icons if not 'columns' in x or not 'pnpgraph_present' in x.get('columns')]
-    multisite_icons.append({
-        'columns':    ['pnpgraph_present'],
-        'paint':      paint_pynp_graph,
-    })
-    #replace Perf-O-Meter link
-    pnp_url = lambda row, what, how='graph': pynp_url(row, what)
+    if multisite_icons_and_actions.pop('perfgraph', None):
+        multisite_icons_and_actions['perfgraph'] = {
+            'columns': ['pnpgraph_present'],
+            'paint': paint_pynp_graph,
+            'sort_index': 20,
+            'toplevel': True
+        }
+        #replace Perf-O-Meter link
+        pnp_url = lambda row, what, how='graph': pynp_url(row, what)

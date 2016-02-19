@@ -103,8 +103,3 @@ function pynp_zoom(img){
     $('.pynp_back').fadeTo('fast', 1);
   }
 }
-
-// Renders contents for the PyNP hover menus
-function pynp_hover_contents(url) {
-    return "<table><tr><td><img width=\"300px\" src=\"" + url + "\"></td></tr></table>";
-}
