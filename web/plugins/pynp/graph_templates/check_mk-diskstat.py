@@ -29,7 +29,7 @@ if len(perf_data) >= 2:
         'opt' : {
             'units-exponent' : '0',
             'title': 'Disk throughput %s / %s' % (hostname, disk),
-            'vertical-label': 'Throughput (MB/s) %'
+            'vertical-label': 'Throughput (MB/s)'
         },
         'def': [
             'HRULE:0#a0a0a0',
