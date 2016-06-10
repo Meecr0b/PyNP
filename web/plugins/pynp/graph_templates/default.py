@@ -29,14 +29,15 @@ for index, ds in enumerate(perf_keys):
     templates.append({
         'opt' : {},
         'def' : [
-            'DEF:a=%s:1:AVERAGE' % rrd_file[ds],
-            'AREA:a%s:%s' % (rand_color(index=index), ds),
-            'GPRINT:a:LAST:Last\: %%6.2lf %s' % unit[ds],
-            'GPRINT:a:MAX:Max\: %%6.2lf %s' % unit[ds],
-            'GPRINT:a:AVERAGE:Average\: %%6.2lf %s\\n' % unit[ds],
-            'LINE1:a%s' % colors['black'],
-            'HRULE:0%s' % colors['black'],
+            'DEF:%s=%s:1:AVERAGE' % (ds, rrd_file[ds]),
+            'AREA:%s%s:%s' % (ds, rand_color(index=index), ds),
+            'GPRINT:%s:LAST:Last\: %%6.2lf %s' % (ds, unit[ds]),
+            'GPRINT:%s:MAX:Max\: %%6.2lf %s' % (ds, unit[ds]),
+            'GPRINT:%s:AVERAGE:Average\: %%6.2lf %s\\n' % (ds, unit[ds]),
+            'LINE1:%s%s' % (ds, colors['black']),
+            'HRULE:0%s' % (colors['black']),
         ]
+
     })
 
     if unit[ds]:
