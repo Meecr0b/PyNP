@@ -41,7 +41,7 @@ used_mem['def'].extend([
     'DEF:ram=%s:1:MAX' % rrd_file['ramused'],
     'DEF:virt=%s:1:MAX' % rrd_file['memused'],
     'DEF:swap=%s:1:MAX' % rrd_file['swapused'],
-    'CDEF:max_ram=ram,ram,-,%s,+' % (perf_data['ramused']['max']),
+    'CDEF:total_ram=ram,ram,-,%s,+' % (perf_data['ramused']['max']),
 
     'HRULE:%s#000080:RAM+SWAP installed' % perf_data['memused']['max'],
     'HRULE:%s#2040d0:%.1f GB RAM installed' % (perf_data['ramused']['max'], float(perf_data['ramused']['max']) / 1024),
