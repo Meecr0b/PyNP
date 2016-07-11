@@ -44,10 +44,17 @@ for index, ds in enumerate(perf_keys):
         templates[index]['opt']['vertical-label'] = unit[ds]
 
     if perf_data[ds]['warn']:
-        templates[index]['def'].extend([
-            'HRULE:%s#ffff00:Warning  %s\\n' % (perf_data[ds]['warn'],perf_data[ds]['warn']),
-            'HRULE:%s#ff0000:Critical %s\\n' % (perf_data[ds]['crit'],perf_data[ds]['crit']),
-        ])
+        for level in perf_data[ds]['warn'].split(':'):
+            templates[index]['def'].append(
+                'HRULE:%s#ffff00:Warning  %s\\n' % (level, level),
+            )
+
+    if perf_data[ds]['crit']:
+        for level in perf_data[ds]['crit'].split(':'):
+            templates[index]['def'].append(
+                'HRULE:%s#ff0000:Critical %s\\n' % (level, level),
+            )
+
 
 templates[0]['opt']['title'] = '%s / %s' % (hostname, servicedesc.replace(':', '\:'))
 
