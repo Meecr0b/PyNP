@@ -323,9 +323,10 @@ class PyNPTemplate(object):
                     del rrd_conf['opt'][key]
                 #extend graph_params for xport
                 for line in graph_params[index]['def']:
-                    if line.lower().startswith('def'):
-                        x_var = line.split('=',1)[0][4:] 
-                        xports.append('XPORT:%s:"%s"'% (x_var, x_var))
+                    for xport_attribute in ['def', 'cdef']:
+                        if line.lower().startswith(xport_attribute):
+                            x_var = line.split('=',1)[0][len(xport_attribute)+1:]
+                            xports.append('XPORT:%s:"%s"'% (x_var, x_var))
                 graph_params[index]['def'] += xports
             graph_params[index] = self.to_rrd_graph_parameter(rrd_conf['opt']) + rrd_conf['def']
         #graph_template = map(lambda x,y: self.to_rrd_graph_parameter(x) + y, graph_template)
