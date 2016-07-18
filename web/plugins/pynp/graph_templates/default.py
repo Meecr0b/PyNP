@@ -22,19 +22,24 @@
 # | rand_color    | function | generate random hex color                  | rand_color(steps=8, index=None) => #7ffff00                                           |
 # +---------------+----------+--------------------------------------------+---------------------------------------------------------------------------------------+
 
-
+def cleanup_ds(s):
+    bad_chars = ['[', ']', '#']
+    for c in bad_chars:
+        s = s.replace(c,'')
+    return s
 
 templates = []
 for index, ds in enumerate(perf_keys):
+    vname = cleanup_ds(ds)
     templates.append({
         'opt' : {},
         'def' : [
-            'DEF:%s=%s:1:AVERAGE' % (ds, rrd_file[ds]),
-            'AREA:%s%s:%s' % (ds, rand_color(index=index), ds),
-            'GPRINT:%s:LAST:Last\: %%6.2lf %s' % (ds, unit[ds]),
-            'GPRINT:%s:MAX:Max\: %%6.2lf %s' % (ds, unit[ds]),
-            'GPRINT:%s:AVERAGE:Average\: %%6.2lf %s\\n' % (ds, unit[ds]),
-            'LINE1:%s%s' % (ds, colors['black']),
+            'DEF:%s=%s:1:AVERAGE' % (vname, rrd_file[ds]),
+            'AREA:%s%s:%s' % (vname, rand_color(index=index), ds),
+            'GPRINT:%s:LAST:Last\: %%6.2lf %s' % (vname, unit[ds]),
+            'GPRINT:%s:MAX:Max\: %%6.2lf %s' % (vname, unit[ds]),
+            'GPRINT:%s:AVERAGE:Average\: %%6.2lf %s\\n' % (vname, unit[ds]),
+            'LINE1:%s%s' % (vname, colors['black']),
             'HRULE:0%s' % (colors['black']),
         ]
 
