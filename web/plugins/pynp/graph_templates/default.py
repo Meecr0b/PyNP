@@ -23,31 +23,44 @@
 # | rand_color    | function | generate random hex color                  | rand_color(steps=8, index=None) => #7ffff00                                           |
 # +---------------+----------+--------------------------------------------+---------------------------------------------------------------------------------------+
 
-
+def cleanup_ds(s):
+    bad_chars = ['[', ']', '#', '.', '/']
+    for c in bad_chars:
+        s = s.replace(c,'')
+    return s
 
 templates = []
 for index, ds in enumerate(perf_keys):
+    vname = cleanup_ds(ds)
     templates.append({
         'opt' : {},
         'def' : [
-            'DEF:a=%s:%i:AVERAGE' % (rrd_file[ds], rrd_file_index[ds]),
-            'AREA:a%s:%s' % (rand_color(index=index), ds),
-            'GPRINT:a:LAST:Last\: %%6.2lf %s' % unit[ds],
-            'GPRINT:a:MAX:Max\: %%6.2lf %s' % unit[ds],
-            'GPRINT:a:AVERAGE:Average\: %%6.2lf %s\\n' % unit[ds],
-            'LINE1:a%s' % colors['black'],
-            'HRULE:0%s' % colors['black'],
+            'DEF:%s=%s:1:AVERAGE' % (vname, rrd_file[ds]),
+            'AREA:%s%s:%s' % (vname, rand_color(index=index), ds),
+            'GPRINT:%s:LAST:Last\: %%6.2lf %s' % (vname, unit[ds]),
+            'GPRINT:%s:MAX:Max\: %%6.2lf %s' % (vname, unit[ds]),
+            'GPRINT:%s:AVERAGE:Average\: %%6.2lf %s\\n' % (vname, unit[ds]),
+            'LINE1:%s%s' % (vname, colors['black']),
+            'HRULE:0%s' % (colors['black']),
         ]
+
     })
 
     if unit[ds]:
         templates[index]['opt']['vertical-label'] = unit[ds]
 
     if perf_data[ds]['warn']:
-        templates[index]['def'].extend([
-            'HRULE:%s#ffff00:Warning  %s\\n' % (perf_data[ds]['warn'],perf_data[ds]['warn']),
-            'HRULE:%s#ff0000:Critical %s\\n' % (perf_data[ds]['crit'],perf_data[ds]['crit']),
-        ])
+        for level in perf_data[ds]['warn'].split(':'):
+            templates[index]['def'].append(
+                'HRULE:%s#ffff00:Warning  %s\\n' % (level, level),
+            )
+
+    if perf_data[ds]['crit']:
+        for level in perf_data[ds]['crit'].split(':'):
+            templates[index]['def'].append(
+                'HRULE:%s#ff0000:Critical %s\\n' % (level, level),
+            )
+
 
 templates[0]['opt']['title'] = '%s / %s' % (hostname, servicedesc.replace(':', '\:'))
 

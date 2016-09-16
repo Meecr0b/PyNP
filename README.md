@@ -18,6 +18,9 @@ Lightweight Multisite-Plugin for performance graphs
 ## Configuration
 see config file **web/plugins/config/pynp.py**
 
+## View-Option
+use the Display Options in Multisite to change the default timerange and the graph dimensions
+
 ## Use
 
 | Function        | Description                                          |
