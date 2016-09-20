@@ -25,7 +25,7 @@
 import defaults
 
 pynp_rrd_cmc_path        = defaults.omd_root + '/var/check_mk/rrd'
-pynp_rrd_pynp_path       = defaults.omd_root + '/var/pnp4nagios/perfdata'
+pynp_rrd_pnp_path        = defaults.omd_root + '/var/pnp4nagios/perfdata'
 pynp_rrd_cached_socket   = 'unix:%s/tmp/run/rrdcached.sock' % defaults.omd_root
 pynp_rrd_update_interval = 3600         # see TIMEOUT in etc/rrdcached.conf, 
 pynp_default_height      = None         # use default rrdtool height
