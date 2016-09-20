@@ -23,7 +23,7 @@
 # Boston, MA 02110-1301 USA.
 
 import rrdtool
-import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont
 import defaults
 import config
 import colorsys
