@@ -23,7 +23,7 @@
 # Boston, MA 02110-1301 USA.
 
 import rrdtool
-import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont
 import defaults
 import config
 import colorsys
@@ -32,6 +32,7 @@ import re
 import os
 import time
 import htmllib
+import xml.etree.ElementTree
 from StringIO import StringIO
 from lib import *
 from itertools import izip_longest
@@ -57,13 +58,7 @@ class PyNPGraph(object):
         self.end = end and int(end)
         self._file = None
         self._template = None
-        self._dummy_perf_data = None
-        self.rrd_host = str(pnp_cleanup(host))
-        self.rrd_service = str(pnp_cleanup(service))
-        self.rrd_path = str(config.pynp_rrd_cmc_path)
-        self.rrd_file = '%s/%s/%s.rrd' % (self.rrd_path, self.rrd_host, self.rrd_service)
-        self._rrd_file_index = {}
-        self.rrd_info = '%s/%s/%s.info' % (self.rrd_path, self.rrd_host, self.rrd_service)
+        self._rrd_xml = PyNPXMLConfig('%s/%s/%s.xml' % (str(config.pynp_rrd_path), str(pnp_cleanup(host)), str(pnp_cleanup(service))))
         self.__rrd_cached_socket = str(config.pynp_rrd_cached_socket)
         self.__rrd_update_interval = int(config.pynp_rrd_update_interval)
         self.output_format = output_format
@@ -95,19 +90,9 @@ class PyNPGraph(object):
             self._template = PyNPTemplate(self)
         return self._template
     
-    @property
-    def dummy_perf_data(self):
-        """Return a dummy perf_data line"""
-        if not self._dummy_perf_data:
-            self.lookup_rrd_info()
-        return self._dummy_perf_data
+
     
-    @property
-    def rrd_file_index(self):
-        """Return a dummy perf_data line"""
-        if not self._rrd_file_index:
-            self.lookup_rrd_info()
-        return self._rrd_file_index
+
     
     @property
     def height(self):
@@ -126,6 +111,8 @@ class PyNPGraph(object):
         if self._max_rows > config.pynp_max_rows:
             self._max_rows = config.pynp_max_rows
         return self._max_rows
+
+    
     
     def create_file(self):
         """Flush the rrd_cache if it's necessary, then get the rrd-config, generate the graph(s) and merge them to a single file"""
@@ -147,17 +134,8 @@ class PyNPGraph(object):
             
     def flush_rrd_cache(self):
         """Flush the rrd_cache for necessary files"""
-        rrdtool.flushcached('--daemon', self.__rrd_cached_socket, [self.rrd_file])
-    
-    def lookup_rrd_info(self):
-        """generate dummy perf_data"""
-        #self._dummy_perf_data = '=;;;; '.join(map(lambda x: x[len(self.service)+1:-4], self._rrd_files)) + '=;;;;'
-        #self._rrd_file = '%s.rrd' % self.rrd_service
-        with open(self.rrd_info) as info:
-            metrics = re.search('(?:METRICS (.*?)\n)', info.read()).groups()[0]
-        self._rrd_file_index = dict((v, k+1) for k, v in enumerate(metrics.split(';')))
-        self._dummy_perf_data = '=;;;; '.join(metrics.split(';')) + '=;;;;'
-    
+        rrdtool.flushcached('--daemon', self.__rrd_cached_socket, list(set(map(lambda x: filter(lambda e: 'RRDFILE' in e, x)[0]['RRDFILE'], self._rrd_xml.DATASOURCE))))
+        
     def merge_files(self, files):
         """Merge multiple files to a single file and returns them as string"""
         file = None
@@ -198,6 +176,29 @@ class PyNPGraph(object):
             tmp_string_io.close()
         return file
 
+class PyNPXMLConfig(object):
+    """Class to get the xml config"""
+    def __init__(self, xmlfile):
+        config = xml.etree.ElementTree.parse(xmlfile).getroot()
+        for element in self.parse_xml(config):
+            for k, v in element.iteritems():
+                if isinstance(v, list):
+                    if not k in self.__dict__:
+                        self.__dict__[k] = []
+                    self.__dict__[k].append(v)
+                else:
+                    self.__dict__[k] = v
+            
+    
+    def parse_xml(self, xml):
+        childs = xml.getchildren()
+        if len(childs) == 0:
+            return xml.text
+        else:
+            x = []
+            for e in childs:
+                x.append({e.tag : self.parse_xml(e)})
+            return x    
 
 class PyNPTemplate(object):
     """Class for the PyNP Templates"""
@@ -209,12 +210,13 @@ class PyNPTemplate(object):
         self.__template_paths.extend(config.pynp_template_paths)
         self.__color_steps = config.pynp_random_colors or 8
         self.__font = config.pynp_font
-        self._perf_data = {}
-        self._perf_keys = []
-        self._unit = {}
-        self._check_command = None
         self._rrd_file = {}
         self._rrd_file_index = {}
+        self.perf_data = self.perfdata2dict(graph._rrd_xml.NAGIOS_PERFDATA)
+        self._perf_keys = []
+        
+        self._unit = {}
+        self.check_command = graph._rrd_xml.NAGIOS_CHECK_COMMAND
         self._substitutions = None
         self.__xport_formats = ['csv']
     
@@ -226,43 +228,39 @@ class PyNPTemplate(object):
         return self._rrd_params
     
     @property
-    def perf_data(self):
-        if not self._perf_data:
-            self.lookup_livestatus()
-        return self._perf_data
-    
+    def rrd_file(self):
+        """Return rrd files by ds"""
+        if not self._rrd_file:
+            self.extract_ds_from_xml()
+        return self._rrd_file
+
     @property
-    def perf_keys(self):
-        if not self._perf_keys:
-            self.lookup_livestatus()
-        return self._perf_keys
-    
+    def rrd_file_index(self):
+        """Return index of ds"""
+        if not self._rrd_file_index:
+            self.extract_ds_from_xml()
+        return self._rrd_file_index
+
     @property
     def unit(self):
         if not self._unit:
-            self.lookup_livestatus()
+            self.extract_ds_from_xml()
         return self._unit
-    
+
     @property
-    def check_command(self):
-        if not self._check_command:
-            self.lookup_livestatus()
-        return self._check_command
-    
-    @property
-    def rrd_file(self):
-        if not self._rrd_file:
-            self.lookup_livestatus()
-        return self._rrd_file
+    def perf_keys(self):
+        if not self._unit:
+            self.extract_ds_from_xml()
+        return self._unit
     
     @property
     def substitutions(self):
         if not self._substitutions:
             self._substitutions = {
-                'hostname'      : self.__graph.host,
-                'servicedesc'   : self.__graph.service,
+                'hostname'      : self.__graph._rrd_xml.NAGIOS_HOSTNAME,
+                'servicedesc'   : self.__graph._rrd_xml.NAGIOS_AUTH_SERVICEDESC,
                 'rrd_file'      : self.rrd_file,
-                'rrd_file_index': self.__graph.rrd_file_index,
+                'rrd_file_index': self.rrd_file_index,
                 'font'          : self.__font,
                 'perf_data'     : self.perf_data,
                 'perf_keys'     : self.perf_keys,
@@ -271,6 +269,14 @@ class PyNPTemplate(object):
                 'check_command' : self.check_command,
             }
         return self._substitutions
+    
+    def extract_ds_from_xml(self):
+        for e in self.__graph._rrd_xml.DATASOURCE:
+            ds = filter(lambda x: 'NAME' in x, e)[0]['NAME']
+            self._perf_keys.append(ds)
+            self._rrd_file_index[ds] = int(infilter(lambda x: 'DS' in x, e)[0]['DS'])
+            self._rrd_file[ds] = filter(lambda x: 'RRDFILE' in x, e)[0]['RRDFILE']
+            self._unit[ds] = filter(lambda x: 'UNIT' in x, e)[0]['UNIT']
     
     def create_rrd_params(self):
         service_descr_template = {}
@@ -365,40 +371,19 @@ class PyNPTemplate(object):
         #get everything that looks like {'opt': {...}, 'def': [...]}
         return list(self.find_templates_in_var(template_vars))
     
-    def lookup_livestatus(self):
-        query = "GET services\nFilter: host_name = %s\nFilter: description = %s\n" \
-                "Columns: perf_data check_command" % (self.__graph.host, self.__graph.service)
-        result = html.live.query(query)
-        if result:
-            perf_data, check_command = result[0]
-        else:
-            perf_data, check_command = None, None
-        
-        #if no result from livestatus, use dummy data from graph
-        if not perf_data:
-            perf_data = self.__graph.dummy_perf_data
-        
-        for index, perf_line in enumerate(perf_data.split()):
-            if u'=' in perf_line:
-                key, values = str(perf_line).split('=')
-                self._rrd_file[key] = self.__graph.rrd_file
-                self._perf_keys.append(key)
-                perf_val = dict(
-                    izip_longest(
-                        ["act", "warn", "crit", "min", "max"],
-                        map(lambda x: x if x else False, values.split(';'))
-                    )
+    def perfdata2dict(self, perf_data):
+        perf_dict = {}
+        for index, perf_line in enumerate(perf_data.split()):    
+            key, values = str(perf_line).split('=')
+            perf_val = dict(
+                izip_longest(
+                    ["act", "warn", "crit", "min", "max"],
+                    map(lambda x: x if x else False, values.split(';'))
                 )
-                self._perf_data[key] = perf_val
-                if perf_val['act']:
-                    self._unit[key] = regex('[\d\.]*').split(perf_val['act'])[-1]
-                    if self._unit[key] == '%':
-                        self._unit[key] = '%%'    #used for string formating
-                else:
-                    self._unit[key] = ''
-            else:
-                self._check_command = perf_line[1:-1] #fix for mrpe
-        self._check_command = self._check_command or check_command.split('!')[0]
+            )
+            perf_dict[key] = perf_val
+        return perf_dict
+
     
     def find_templates_in_var(self, d):
         if isinstance(d, dict):
