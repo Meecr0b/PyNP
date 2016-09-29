@@ -8,7 +8,7 @@
 # |                    |_|    \__, |_| \_|_|                         |
 # |                           |___/                                  |
 # |                                                                  |
-# | Copyright Dennis Lerch 2015                  dennis.lerch@gmx.de |
+# | Copyright Dennis Lerch 2016                  dennis.lerch@gmx.de |
 # +------------------------------------------------------------------+
 #
 # PyNP is free software;  you  can  redistribute  it and/or modify  it

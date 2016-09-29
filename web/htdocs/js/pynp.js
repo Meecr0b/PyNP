@@ -50,12 +50,12 @@ function pynp_graph_reload(img, start, end){
 
   img.title = img.title.replace(/\([\d\.\s:-]*\)/, "(" +
       ("0" + date_s.getDate()).slice(-2) + "." +
-      ("0" + date_s.getMonth()).slice(-2) + "." +
+      ("0" + date_s.getMonth()+1).slice(-2) + "." +
       date_s.getFullYear() + " " +
       ("0" + date_s.getHours()).slice(-2) + ":" +
       ("0" + date_s.getMinutes()).slice(-2) + " - " +
       ("0" + date_e.getDate()).slice(-2) + "." +
-      ("0" + date_e.getMonth()).slice(-2) + "." +
+      ("0" + date_e.getMonth()+1).slice(-2) + "." +
       date_e.getFullYear() + " " +
       ("0" + date_e.getHours()).slice(-2) + ":" +
       ("0" + date_e.getMinutes()).slice(-2) + ")");
