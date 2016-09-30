@@ -26,16 +26,18 @@ import rrdtool
 from PIL import Image, ImageDraw, ImageFont
 import defaults
 import config
-import colorsys
-import random
-import re
-import os
+#import colorsys
+#import random
+#import re
+#import os
 import time
 import htmllib
 import xml.etree.ElementTree
 from StringIO import StringIO
 from lib import *
-from itertools import izip_longest
+#from itertools import izip_longest
+
+import metrics as CMK_metrics
 
 
 class PyNPException(Exception):
@@ -54,14 +56,15 @@ class PyNPGraph(object):
     def __init__(self, host, service, start=None, end=None, width=None, height=None, output_format='png', max_rows=None):
         self.host = str(host)
         self.service = str(service)
-        self.start = start and int(start)
-        self.end = end and int(end)
+        self._start = start and int(start)
+        self._end = end and int(end)
         self._file = None
-        self._template = None
         self._rrd_xml = PyNPXMLConfig('%s/%s/%s.xml' % (str(config.pynp_rrd_path), str(pnp_cleanup(host)), str(pnp_cleanup(service))))
+        self.rrd_base = '%s/%s/%s' % (str(config.pynp_rrd_path), str(pnp_cleanup(host)), self._rrd_xml.NAGIOS_SERVICEDESC)
         self.__rrd_cached_socket = str(config.pynp_rrd_cached_socket)
         self.__rrd_update_interval = int(config.pynp_rrd_update_interval)
         self.output_format = output_format
+        CMK_metrics.load_plugins(True)
         
         try:
             self._width = int(width)
@@ -77,22 +80,25 @@ class PyNPGraph(object):
             self._max_rows = None #default 400 by rrd
     
     @property
+    def start(self):
+        """Return start time"""
+        if not self._start:
+            self._start = int(time.time()) - 60*60*24*7 # one week default
+        return self._start
+    
+    @property
+    def end(self):
+        """Return end time"""
+        if not self._end:
+            self._end = int(time.time())
+        return self._end
+    
+    @property
     def file(self):
         """Return the file as string"""
         if not self._file:
             self.create_file()
         return self._file
-    
-    @property
-    def template(self):
-        """Return the PyNPTemplate"""
-        if not self._template:
-            self._template = PyNPTemplate(self)
-        return self._template
-    
-
-    
-
     
     @property
     def height(self):
@@ -112,25 +118,232 @@ class PyNPGraph(object):
             self._max_rows = config.pynp_max_rows
         return self._max_rows
 
-    
-    
     def create_file(self):
         """Flush the rrd_cache if it's necessary, then get the rrd-config, generate the graph(s) and merge them to a single file"""
+        graph_templates = []
         graphs = []
         
-        if not self.end or self.end > time.time() - self.__rrd_update_interval:
+        if self.end > time.time() - self.__rrd_update_interval:
             self.flush_rrd_cache()
         
+        perf_var_names = map(lambda x: filter(lambda y: 'NAME' in y, x)[0]['NAME'].lower(), self._rrd_xml.DATASOURCE)    
+        perf_data = [ ( varname, 1, "", 1, 1, 1, 1 ) for varname in perf_var_names ]
+        translated_metrics =  CMK_metrics.translate_metrics(perf_data, self._rrd_xml.NAGIOS_SERVICECHECKCOMMAND)
+        
+        for graph_template in CMK_metrics.get_graph_templates(translated_metrics):
+            graph_templates.append(self.render_graph_pynp(graph_template, translated_metrics))
+
         if self.output_format == 'csv':
             for tmpl_params in self.template.rrd_params:
                 graphs.append(rrdtool.xport(*tmpl_params))
             self._file = self.merge_files(graphs)
         else:
-            for tmpl_params in self.template.rrd_params:
-                graphs.append(rrdtool.graphv('-', *tmpl_params))
+            for template in graph_templates:
+                graphs.append(rrdtool.graphv('-', *template))
             self._file = self.merge_files(graphs)
         if not self._file:
             PyNPException('No graph was generated')
+
+######################################################################################################################################
+######################################################################################################################################
+######################################################################################################################################
+
+    def render_graph_pynp(self, graph_template, translated_metrics):
+        graph_title = None
+        vertical_label = None
+        
+        rrdgraph_commands = []
+        
+        legend_precision    = graph_template.get("legend_precision", 2)
+        legend_scale        = graph_template.get("legend_scale", 1)
+        legend_scale_symbol = CMK_metrics.scale_symbols[legend_scale]
+        
+        # Define one RRD variable for each of the available metrics.
+        # Note: We need to use the original name, not the translated one.
+        for var_name, metrics in translated_metrics.items():
+            rrd = self.rrd_base + "_" + metrics["orig_name"] + ".rrd"
+            scale = metrics["scale"]
+            unit = metrics["unit"]
+            
+            if scale != 1.0:
+                rrdgraph_commands.append("DEF:%s_UNSCALED=%s:1:MAX" % (var_name, rrd))
+                rrdgraph_commands.append("CDEF:%s=%s_UNSCALED,%f,*" % (var_name, var_name, scale))
+            
+            else:
+                rrdgraph_commands.append("DEF:%s=%s:1:MAX" % (var_name, rrd))
+            
+            # Scaling for legend
+            rrdgraph_commands.append("CDEF:%s_LEGSCALED=%s,%f,/" % (var_name, var_name, legend_scale))
+            
+            # Prepare negative variants for upside-down graph
+            rrdgraph_commands.append("CDEF:%s_NEG=%s,-1,*" % (var_name, var_name))
+            rrdgraph_commands.append("CDEF:%s_LEGSCALED_NEG=%s_LEGSCALED,-1,*" % (var_name, var_name))
+        
+        
+        # Compute width of columns in case of mirrored legend
+        
+        total_width = 89 # characters
+        left_width = max([len(_("Average")), len(_("Maximum")), len(_("Last"))]) + 2
+        column_width = (total_width - left_width) / len(graph_template["metrics"]) - 2
+        
+        # Now add areas and lines to the graph
+        graph_metrics = []
+        
+        # Graph with upside down metrics? (e.g. for Disk IO)
+        have_upside_down = False
+        
+        # Compute width of the right column of the legend
+        max_title_length = 0
+        for nr, metric_definition in enumerate(graph_template["metrics"]):
+            if len(metric_definition) >= 3:
+                title = metric_definition[2]
+            elif not "," in metric_definition:
+                metric_name = metric_definition[0].split("#")[0]
+                mi = translated_metrics[metric_name]
+                title = mi["title"]
+            else:
+                title = ""
+            max_title_length = max(max_title_length, len(title))
+        
+        
+        for nr, metric_definition in enumerate(graph_template["metrics"]):
+            metric_name = metric_definition[0]
+            line_type = metric_definition[1] # "line", "area", "stack"
+            
+            # Optional title, especially for derived values
+            if len(metric_definition) >= 3:
+                title = metric_definition[2]
+            else:
+                title = ""
+            
+            # Prefixed minus renders the metrics in negative direction
+            if line_type[0] == '-':
+                have_upside_down = True
+                upside_down = True
+                upside_down_factor = -1
+                line_type = line_type[1:]
+                upside_down_suffix = "_NEG"
+            else:
+                upside_down = False
+                upside_down_factor = 1
+                upside_down_suffix = ""
+            
+            if line_type == "line":
+                draw_type = "LINE"
+                draw_stack = ""
+            elif line_type == "area":
+                draw_type = "AREA"
+                draw_stack = ""
+            elif line_type == "stack":
+                draw_type = "AREA"
+                draw_stack = ":STACK"
+            
+            # User can specify alternative color using a suffixed #aabbcc
+            if '#' in metric_name:
+                metric_name, custom_color = metric_name.split("#", 1)
+            else:
+                custom_color = None
+            
+            commands = []
+            # Derived value with RBN syntax (evaluated by RRDTool!).
+            if "," in metric_name:
+                # We evaluate just in order to get color and unit.
+                # TODO: beware of division by zero. All metrics are set to 1 here.
+                value, unit, color = CMK_metrics.evaluate(metric_name, translated_metrics)
+                
+                if "@" in metric_name:
+                    expression, explicit_unit_name = metric_name.rsplit("@", 1) # isolate expression
+                else:
+                    expression = metric_name
+                
+                # Choose a unique name for the derived variable and compute it
+                commands.append("CDEF:DERIVED%d=%s" % (nr , expression))
+                if upside_down:
+                    commands.append("CDEF:DERIVED%d_NEG=DERIVED%d,-1,*" % (nr, nr))
+                    
+                metric_name = "DERIVED%d" % nr
+                # Scaling and upsidedown handling for legend
+                commands.append("CDEF:%s_LEGSCALED=%s,%f,/" % (metric_name, metric_name, legend_scale))
+                if upside_down:
+                    commands.append("CDEF:%s_LEGSCALED%s=%s,%f,/" % (metric_name, upside_down_suffix, metric_name, legend_scale * upside_down_factor))
+            
+            else:
+                mi = translated_metrics[metric_name]
+                if not title:
+                    title = mi["title"]
+                color = CMK_metrics.parse_color_into_hexrgb(mi["color"])
+                unit = mi["unit"]
+            
+            if custom_color:
+                color = "#" + custom_color
+            
+            # Paint the graph itself
+            # TODO: Die Breite des Titels intelligent berechnen. Bei legend = "mirrored" muss man die
+            # Vefügbare Breite ermitteln und aufteilen auf alle Titel
+            right_pad = " " * (max_title_length - len(title))
+            commands.append("%s:%s%s%s:%s%s%s" % (draw_type, metric_name, upside_down_suffix, color, title.replace(":", "\\:"), right_pad, draw_stack))
+            if line_type == "area":
+                commands.append("LINE:%s%s%s" % (metric_name, upside_down_suffix, CMK_metrics.render_color(CMK_metrics.darken_color(CMK_metrics.parse_color(color), 0.2))))
+            
+            unit_symbol = unit["symbol"]
+            if unit_symbol == "%":
+                unit_symbol = "%%"
+            else:
+                unit_symbol = " " + unit_symbol 
+            graph_metrics.append((metric_name, unit_symbol, commands))
+            
+            # Use title and label of this metrics as default for the graph
+            if title and not graph_title:
+                graph_title = title
+            if not vertical_label:
+                vertical_label = unit["title"]
+        
+        
+        # Now create the rrdgraph commands for all metrics - according to the choosen layout
+        for metric_name, unit_symbol, commands in graph_metrics:
+            rrdgraph_commands.extend(commands)
+            legend_symbol = unit_symbol
+            if unit_symbol and unit_symbol[0] == " ":
+                legend_symbol = " %s%s" % (legend_scale_symbol, unit_symbol[1:])
+            for what, what_title in [ ("AVERAGE", _("average")), ("MAX", _("max")), ("LAST", _("last")) ]:
+                rrdgraph_commands.append("GPRINT:%%s_LEGSCALED:%%s:%%%%8.%dlf%%s %%s" % legend_precision % \
+                            (metric_name, what, legend_symbol, what_title))
+            rrdgraph_commands.append("COMMENT:\\n")
+        
+        
+        # For graphs with both up and down, paint a gray rule at 0
+        if have_upside_down:
+            rrdgraph_commands.append("HRULE:0#c0c0c0")
+        
+        # Now compute the arguments for the command line of rrdgraph
+        rrdgraph_arguments = []
+        
+        graph_title = graph_template.get("title", " ")
+        vertical_label = graph_template.get("vertical_label", " ")
+        
+        rrdgraph_arguments.extend(
+            [
+                "--vertical-label", vertical_label,
+                "--title", graph_title,
+                "--height", str(self.height),
+                "--width", str(self.width),
+                "--start", str(self.start),
+                "--end",str(self.end),
+             ]
+        )
+        
+        min_value, max_value = CMK_metrics.get_graph_range(graph_template, translated_metrics)
+        if min_value != None and max_value != None:
+            rrdgraph_arguments.extend(['-l', str(min_value), '-u', str(max_value])
+        else:
+            rrdgraph_arguments.extend(['-l', '0'])
+        
+        return rrdgraph_arguments + rrdgraph_commands
+
+######################################################################################################################################
+######################################################################################################################################
+######################################################################################################################################
+
             
     def flush_rrd_cache(self):
         """Flush the rrd_cache for necessary files"""
@@ -198,246 +411,7 @@ class PyNPXMLConfig(object):
             x = []
             for e in childs:
                 x.append({e.tag : self.parse_xml(e)})
-            return x    
-
-class PyNPTemplate(object):
-    """Class for the PyNP Templates"""
-    def __init__(self, graph):
-        self._rrd_params = None
-        self.__graph = graph
-        self.__config_path = defaults.omd_root + '/local/share/check_mk/web/plugins/pynp'
-        self.__template_paths = [defaults.omd_root + '/local/share/check_mk/web/plugins/pynp/graph_templates']
-        self.__template_paths.extend(config.pynp_template_paths)
-        self.__color_steps = config.pynp_random_colors or 8
-        self.__font = config.pynp_font
-        self._rrd_file = {}
-        self._rrd_file_index = {}
-        self.perf_data = self.perfdata2dict(graph._rrd_xml.NAGIOS_PERFDATA)
-        self._perf_keys = []
-        
-        self._unit = {}
-        self.check_command = graph._rrd_xml.NAGIOS_CHECK_COMMAND
-        self._substitutions = None
-        self.__xport_formats = ['csv']
-    
-    @property
-    def rrd_params(self):
-        """Return rrd params for graph"""
-        if not self._rrd_params:
-            self.create_rrd_params()
-        return self._rrd_params
-    
-    @property
-    def rrd_file(self):
-        """Return rrd files by ds"""
-        if not self._rrd_file:
-            self.extract_ds_from_xml()
-        return self._rrd_file
-
-    @property
-    def rrd_file_index(self):
-        """Return index of ds"""
-        if not self._rrd_file_index:
-            self.extract_ds_from_xml()
-        return self._rrd_file_index
-
-    @property
-    def unit(self):
-        if not self._unit:
-            self.extract_ds_from_xml()
-        return self._unit
-
-    @property
-    def perf_keys(self):
-        if not self._unit:
-            self.extract_ds_from_xml()
-        return self._unit
-    
-    @property
-    def substitutions(self):
-        if not self._substitutions:
-            self._substitutions = {
-                'hostname'      : self.__graph._rrd_xml.NAGIOS_HOSTNAME,
-                'servicedesc'   : self.__graph._rrd_xml.NAGIOS_AUTH_SERVICEDESC,
-                'rrd_file'      : self.rrd_file,
-                'rrd_file_index': self.rrd_file_index,
-                'font'          : self.__font,
-                'perf_data'     : self.perf_data,
-                'perf_keys'     : self.perf_keys,
-                'unit'          : self.unit,
-                'rand_color'    : self.random_hex_color,
-                'check_command' : self.check_command,
-            }
-        return self._substitutions
-    
-    def extract_ds_from_xml(self):
-        for e in self.__graph._rrd_xml.DATASOURCE:
-            ds = filter(lambda x: 'NAME' in x, e)[0]['NAME']
-            self._perf_keys.append(ds)
-            self._rrd_file_index[ds] = int(infilter(lambda x: 'DS' in x, e)[0]['DS'])
-            self._rrd_file[ds] = filter(lambda x: 'RRDFILE' in x, e)[0]['RRDFILE']
-            self._unit[ds] = filter(lambda x: 'UNIT' in x, e)[0]['UNIT']
-    
-    def create_rrd_params(self):
-        service_descr_template = {}
-        graph_params = []
-        
-        #load all files in pynp path to extend the substitutions and get service_templates
-        for fn in filter(lambda x: x.endswith(".py"), os.listdir(self.__config_path)):
-            execfile("%s/%s" % (self.__config_path, fn), {}, self.substitutions)
-        
-        if 'service_descr_template' in self.substitutions:
-            service_descr_template = self.substitutions.pop('service_descr_template')
-        
-        #building graph_templates based on service description
-        if self.check_command == 'check_mk-local' and service_descr_template:
-            for expression, file in service_descr_template.iteritems():
-                if regex(expression).match(self.__graph.service):
-                    graph_params = self.load_template(file)
-                    if graph_params:
-                        break
-        
-        #building graph-templates based on check_command
-        if not graph_params:
-            graph_params = self.load_template(self.check_command)
-        
-        #building default templates
-        if not graph_params:
-            graph_params = self.load_template('default')
-        
-        #load common template file in subfolder and merge with each graph_template
-        common = self.load_template("common")[0]
-        if common:
-            for index, rrd_conf in enumerate(graph_params):
-                graph_params[index] = dict(self.merge_conf(common, rrd_conf))
-        
-        #merge the options from request
-        options = {
-            'start' : self.__graph.start,
-            'end'   : self.__graph.end,
-            'height': self.__graph.height,
-            'width' : self.__graph.width,
-        }
-        
-        if self.__graph.max_rows and self.__graph.output_format in self.__xport_formats:
-            options['maxrows'] = self.__graph.max_rows
-        
-        for index, rrd_conf in enumerate(graph_params):
-            graph_params[index] = dict(self.merge_conf(rrd_conf, {'opt': options}))
-        
-        #finishing the graph_templates (options to parameter)
-        for index, rrd_conf in enumerate(graph_params):
-            if self.__graph.output_format in self.__xport_formats:
-                xports = []
-                #cleanup graph_params for xport
-                for key in filter(lambda x: x not in ['start', 'end', 'maxrows'], rrd_conf['opt']):
-                    del rrd_conf['opt'][key]
-                #extend graph_params for xport
-                for line in graph_params[index]['def']:
-                    for xport_attribute in ['def', 'cdef']:
-                        if line.lower().startswith(xport_attribute):
-                            x_var = line.split('=',1)[0][len(xport_attribute)+1:]
-                            xports.append('XPORT:%s:"%s"'% (x_var, x_var))
-                graph_params[index]['def'] += xports
-            graph_params[index] = self.to_rrd_graph_parameter(rrd_conf['opt']) + rrd_conf['def']
-        #graph_template = map(lambda x,y: self.to_rrd_graph_parameter(x) + y, graph_template)
-        
-        self._rrd_params = graph_params
-        return True
-    
-    def load_template(self, file):
-        template_file = ''
-        local_dict = {}
-        for path in reversed(self.__template_paths):
-            if os.path.isfile('%s/%s.py' % (path, file)):
-                template_file = open('%s/%s.py' % (path, file), 'r')
-                break
-        if not template_file:
-            return[]
-        
-        template = template_file.read()
-        template_file.close()
-        compiled_template = compile(template, '<string>', 'exec')
-        try:
-            exec compiled_template in self.substitutions, local_dict
-        except:
-            raise PyNPException("Error while loading template file %s.py:\n%s" % (file, format_exception()))
-        
-        #variables from template ordered by declaration time
-        template_vars = [
-            {key: local_dict[key]} for key in filter(lambda x: x in local_dict, compiled_template.co_names)
-        ]
-        
-        #get everything that looks like {'opt': {...}, 'def': [...]}
-        return list(self.find_templates_in_var(template_vars))
-    
-    def perfdata2dict(self, perf_data):
-        perf_dict = {}
-        for index, perf_line in enumerate(perf_data.split()):    
-            key, values = str(perf_line).split('=')
-            perf_val = dict(
-                izip_longest(
-                    ["act", "warn", "crit", "min", "max"],
-                    map(lambda x: x if x else False, values.split(';'))
-                )
-            )
-            perf_dict[key] = perf_val
-        return perf_dict
-
-    
-    def find_templates_in_var(self, d):
-        if isinstance(d, dict):
-            if ('def' in d or 'opt' in d):
-                yield d
-            else:
-                for k, v in d.iteritems():
-                    for x in self.find_templates_in_var(v):
-                        yield x
-        elif isinstance(d, list):
-            for v in d:
-                for x in self.find_templates_in_var(v):
-                    yield x
-    
-    def merge_conf(self, conf_a, conf_b):
-        for k in set(conf_a.keys()).union(conf_b.keys()):
-            if k in conf_a and k in conf_b:
-                if isinstance(conf_a[k], dict) and isinstance(conf_b[k], dict):
-                    yield (k, dict(self.merge_conf(conf_a[k], conf_b[k])))
-                else:
-                    yield (k, conf_b[k])
-            elif k in conf_a:
-                yield (k, conf_a[k])
-            else:
-                yield (k, conf_b[k])
-    
-    def to_rrd_graph_parameter(self, options):
-        params = []
-        for option, value in options.iteritems():
-            if isinstance(value, dict):
-                for x, y in value.iteritems():
-                    params += ["--" + option, "%s%s" % (x,y)]
-            elif value is True:
-                params.append("--" + option)
-            elif value is False or value is None:
-                continue
-            else:
-                params += ["--" + option, str(value)]
-        return params
-    
-    def random_hex_color(self, index=None):
-        if type(index) is int:
-            #return color_index with maximum differenze between last color
-            index %= self.__color_steps
-            if index%2==0:
-                color_index = index/2
-            else:
-                color_index = index/2 + self.__color_steps/2
-        else:
-            color_index = random.randint(0, steps-1)
-        hue = 1. / self.__color_steps * color_index + 0.25  #to begin the hue with green, add 0.25 to it (red is an evil color ;) )
-        saturation = 1
-        lightness = 0.5
-        return "#%02x%02x%02x" % tuple(map(lambda x: int(x*255), colorsys.hls_to_rgb(hue, lightness, saturation)))
+            return x
 
 def exception_to_graph(e):
     font = ImageFont.load_default()
